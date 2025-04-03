@@ -39,7 +39,7 @@ jobs:
             # Serve with PM2
             sudo npm install -g pm2 serve
             pm2 delete frontend || true  # Ensure previous instance is stopped
-            pm2 start "serve -s build -p 3000" --name "frontend"            
+            pm2 start "serve -s build -p 8080" --name "frontend"            
 
             # Restart Nginx
             sudo systemctl restart nginx
