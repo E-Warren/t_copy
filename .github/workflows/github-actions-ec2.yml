@@ -28,9 +28,9 @@ jobs:
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key: ${{ secrets.EC2_SSH_KEY_FRONT }}
           script: |
             cd home
             sudo mv * /var/www/html
             npm install
-            npm expo start
+            npx expo start
