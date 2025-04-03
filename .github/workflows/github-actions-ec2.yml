@@ -1,51 +1,31 @@
-name: Push-to-EC2-Front
-
-# Trigger deployment only on push to main branch
+name: Deploy-Frontend
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-      - master
 
 jobs:
   deploy:
-    name: Deploy to EC2 on master branch push
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout the files
+      - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Deploy to Server 1
-        uses: easingthemes/ssh-deploy@main
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY_FRONT }}
-          REMOTE_HOST: ${{ secrets.HOST_DNS }}
-          REMOTE_USER: ${{ secrets.USERNAME }}
-          TARGET: ${{ secrets.TARGET_DIR }}
-
-      - name: Executing remote ssh commands using ssh key
+      - name: Deploy to Frontend Server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.HOST_DNS }}
+          host: ${{ secrets.HOST_DNS_FRONT }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY_FRONT }}
           script: |
-            cd home
-            sudo mv * /var/www/html
+            cd ~
+            rsync -av --delete ~/ /var/www/html/
             sudo apt update && sudo apt upgrade -y
-            sudo apt install -y curl
             curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-            sudo apt install nodejs
-
-            node -v
-            npm -v
-
+            sudo apt install -y nodejs npm nginx
             cd /var/www/html
             sudo npm install
-            npm install expo
-            npm update
-            npx expo start
+            npm run build
+            sudo systemctl restart nginx
+
