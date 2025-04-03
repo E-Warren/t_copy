@@ -33,7 +33,7 @@ export default function CreateDeckScreen() {
         //get deck with [id] from backend
         try {
             //const response = await fetch(`http://localhost:5000/createdecks/${id}`, {
-            const response = await fetch(`ec2-18-218-57-172.us-east-2.compute.amazonaws.com/createdecks/${id}`, {
+            const response = await fetch(`http://ec2-18-218-57-172.us-east-2.compute.amazonaws.com/createdecks/${id}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -197,7 +197,7 @@ export default function CreateDeckScreen() {
       const token = localStorage.getItem('token');
 
         //const response = await fetch(`http://localhost:5000/createdecks/${id}`, {
-        const response = await fetch(`ec2-18-218-57-172.us-east-2.compute.amazonaws.com/createdecks/${id}`, {
+        const response = await fetch(`http://ec2-18-218-57-172.us-east-2.compute.amazonaws.com/createdecks/${id}`, {
           method: 'PUT',
           headers: {
               'Content-Type': 'application/json',

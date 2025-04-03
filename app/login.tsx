@@ -63,7 +63,7 @@ export default function LoginScreen() {
   const sendEmailToServer = async (email: string) => {
     try {
       //const response = await fetch("http://localhost:5000/google-login", {
-      const response = await fetch("ec2-18-218-57-172.us-east-2.compute.amazonaws.com/google-login", {
+      const response = await fetch("http://ec2-18-218-57-172.us-east-2.compute.amazonaws.com/google-login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -139,7 +139,7 @@ export default function LoginScreen() {
 
     try {
       //const response = await fetch('http://localhost:5000/login', {
-        const response = await fetch('ec2-18-218-57-172.us-east-2.compute.amazonaws.com/login', {
+        const response = await fetch('http://ec2-18-218-57-172.us-east-2.compute.amazonaws.com/login', {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
