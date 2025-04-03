@@ -14,7 +14,8 @@ jobs:
 
       - name: Set proper file ownership on the server
         run: |
-          ssh -i ${{ secrets.EC2_SSH_KEY }} ${{ secrets.USERNAME }}@${{ secrets.HOST_DNS }} 'sudo chown -R $USER:$USER /var/www/html && sudo chmod -R 755 /var/www/html'
+            sudo chown -R $USER:$USER /var/www/html
+            sudo chmod -R 755 /var/www/html
 
       - name: Deploy to Frontend Server
         uses: appleboy/ssh-action@master
