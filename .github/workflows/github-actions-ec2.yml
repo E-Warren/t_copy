@@ -19,18 +19,34 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY_FRONT }}
           script: |
-            cd ~
-            rsync -av --delete ~/ /var/www/html/
+            # Define project directory
+            PROJECT_DIR=/var/www/frontend
+
+            # Ensure the directory exists
+            sudo mkdir -p $PROJECT_DIR
+            sudo chown -R $USER:$USER $PROJECT_DIR
+
+            # Use rsync correctly (excluding system files)
+            rsync -av --delete --exclude='.bash*' --exclude='.npm' ./ $PROJECT_DIR/
+
+            # Install dependencies & build
+            cd $PROJECT_DIR
             sudo apt update && sudo apt upgrade -y
             curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
             sudo apt install -y nodejs npm nginx
-            cd /var/www/html
-            sudo npm install
-            pm2 start "npm run build && serve -s build" --name "frontend"
-            sudo cp -r build/* /var/www/html/
+            npm install
+            npm run build
+
+            # Serve with PM2
+            sudo npm install -g pm2 serve
+            pm2 delete frontend || true  # Ensure previous instance is stopped
+            pm2 start serve --name "frontend" -- -s build -p 3000
+
+            # Restart Nginx
+            sudo systemctl restart nginx
 
       - name: Set proper file ownership on the server
         run: |
-            sudo chown -R $USER:$USER /var/www/html
-            sudo chmod -R 755 /var/www/html
-            sudo systemctl restart nginx
+          sudo chown -R $USER:$USER /var/www/frontend
+          sudo chmod -R 755 /var/www/frontend
+          sudo systemctl restart nginx
