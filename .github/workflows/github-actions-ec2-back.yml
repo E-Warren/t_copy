@@ -21,10 +21,15 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY_BACK }}
           script: |
             # Define project directory
-            PROJECT_DIR="/var/www/html/backend"
+            # PROJECT_DIR="/var/www/html/backend"
+            PROJECT_DIR="/var/www/backend"
+            USER=${{ secrets.USERNAME }}
             
             # Ensure directory exists
             sudo mkdir -p $PROJECT_DIR
+            sudo chown -R $USER:$USER $PROJECT_DIR
+            sudo chmod -R 755 $PROJECT_DIR
+            sudo systemctl restart nginx
 
             # Sync backend files properly
             #rsync -av --delete ./backend/ $PROJECT_DIR/
