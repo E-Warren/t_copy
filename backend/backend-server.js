@@ -32,7 +32,8 @@ const bodyParser = require("body-parser");
 
 app.use(
   cors({
-    origin: "http://localhost:8081",
+   // origin: "http://localhost:8081",
+    origin: "ec2-18-218-57-172.us-east-2.compute.amazonaws.com",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -936,7 +937,8 @@ app.listen(port, (error) => {
   //error handling for server connection
   if (!error) {
     //running our server at http://127.0.0.1:5000
-    console.log(`Listening at http://localhost:${port}`);
+    //console.log(`Listening at http://localhost:${port}`);
+    console.log(`Listening at ec2-18-218-57-172.us-east-2.compute.amazonaws.com`);
   } else {
     console.log("Server connection error: ", error);
   }
