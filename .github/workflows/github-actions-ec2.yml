@@ -12,11 +12,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set proper file ownership on the server
-        run: |
-            sudo chown -R $USER:$USER /var/www/html
-            sudo chmod -R 755 /var/www/html
-
       - name: Deploy to Frontend Server
         uses: appleboy/ssh-action@master
         with:
@@ -32,5 +27,10 @@ jobs:
             cd /var/www/html
             sudo npm install
             npm run build
-            sudo systemctl restart nginx
+            sudo cp -r build/* /var/www/html/
 
+      - name: Set proper file ownership on the server
+        run: |
+            sudo chown -R $USER:$USER /var/www/html
+            sudo chmod -R 755 /var/www/html
+            sudo systemctl restart nginx
