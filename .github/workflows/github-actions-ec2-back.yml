@@ -28,6 +28,7 @@ jobs:
 
             # Sync backend files properly
             rsync -av --delete ./backend/ $PROJECT_DIR/
+            rsync -av --delete --exclude='.bash*' --exclude='.npm' ./home/backend/ $PROJECT_DIR/
 
             # Update system and install necessary packages
             sudo apt update && sudo apt upgrade -y
@@ -37,6 +38,7 @@ jobs:
 
             # Install dependencies
             sudo npm install
+            npm install pm2 -g
 
             # Restart backend using PM2 (delete previous instance if exists)
             pm2 delete backend || true
