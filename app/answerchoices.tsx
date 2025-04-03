@@ -103,7 +103,8 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
 
       //because I cant have request body for GET requests -> send deckID through parameters (yayy)
       try {
-        const response = await fetch(`http://localhost:5000/answerchoices/${deckID}`, {
+       // const response = await fetch(`http://localhost:5000/answerchoices/${deckID}`, {
+        const response = await fetch(`ec2-18-218-57-172.us-east-2.compute.amazonaws.com/answerchoices/${deckID}`, {
           method: 'GET',
           headers: {
               'Content-Type': 'application/json'

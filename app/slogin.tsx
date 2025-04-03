@@ -29,7 +29,8 @@ export default function GamePinScreen() { // Function used to get pin from User
 
       try{
         //call the backent endpoint to determine if the entered code is a valid code (meaning there is already a host)
-        const response = await fetch('http://localhost:5000/validRoomCode', {
+        //const response = await fetch('http://localhost:5000/validRoomCode', {        
+        const response = await fetch('ec2-18-218-57-172.us-east-2.compute.amazonaws.com/validRoomCode', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

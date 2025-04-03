@@ -14,7 +14,8 @@ interface Deck {
 
 const deleteDeckFromBackend = async (deckId: string, token: string): Promise<boolean> => {
   try {
-        const response = await fetch('http://localhost:5000/view-decks', {
+        //const response = await fetch('http://localhost:5000/view-decks', {
+        const response = await fetch('ec2-18-218-57-172.us-east-2.compute.amazonaws.com/view-decks', {
           method: 'DELETE',
           headers: {
               'Content-Type': 'application/json',
@@ -61,7 +62,8 @@ export default function DecksScreen() {
 
       //get decks from backend
       try {
-        const response = await fetch('http://localhost:5000/view-decks', {
+        //const response = await fetch('http://localhost:5000/view-decks', {
+        const response = await fetch('ec2-18-218-57-172.us-east-2.compute.amazonaws.com/view-decks', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
