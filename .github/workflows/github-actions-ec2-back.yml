@@ -1,0 +1,50 @@
+name: Deploy-Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Deploy to Backend Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.BACKEND_HOST_DNS }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY_BACK }}
+          script: |
+            # Define project directory
+            PROJECT_DIR="/var/www/html/backend"
+            
+            # Ensure directory exists
+            sudo mkdir -p $PROJECT_DIR
+
+            # Sync backend files properly
+            rsync -av --delete ~/backend/ $PROJECT_DIR/
+
+            # Update system and install necessary packages
+            sudo apt update && sudo apt upgrade -y
+            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+            sudo apt install -y nodejs npm pm2 nginx
+
+            # Navigate to the backend directory
+            cd $PROJECT_DIR
+
+            # Install dependencies
+            sudo npm install
+
+            # Restart backend using PM2 (delete previous instance if exists)
+            pm2 delete backend || true
+            pm2 start npm --name "backend" -- start
+            pm2 save
+            pm2 startup
+
+            # Restart nginx to apply changes
+            sudo systemctl restart nginx
