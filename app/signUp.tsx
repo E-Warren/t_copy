@@ -59,7 +59,9 @@ export default function LoginScreen() {
     }
 
     try {
-        const response = await fetch('http://localhost:5000/signUp', {
+
+      const response = await fetch('http://localhost:5000/signUp', {
+        const response = await fetch('ec2-18-218-57-172.us-east-2.compute.amazonaws.com/signUp', {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
