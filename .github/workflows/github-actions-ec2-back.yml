@@ -16,7 +16,7 @@ jobs:
       - name: Deploy to Backend Server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.BACKEND_HOST_DNS }}
+          host: ${{ secrets.HOST_DNS_BACK }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY_BACK }}
           script: |
