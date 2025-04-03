@@ -36,6 +36,15 @@ jobs:
           script: |
             cd home
             sudo mv * /var/www/html
+
+            sudo apt update -y
+            sudo apt install -y curl
+            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
             sudo apt install nodejs
+
+            node -v
+            npm -v
+
+            cd /var/www/html
             npm install
             npx expo start
