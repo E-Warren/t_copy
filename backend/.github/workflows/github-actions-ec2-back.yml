@@ -13,11 +13,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set proper file ownership on the server
-        run: |
-            sudo chown -R $USER:$USER /var/www/html
-            sudo chmod -R 755 /var/www/html
-
       - name: Deploy to Backend Server
         uses: appleboy/ssh-action@master
         with:
