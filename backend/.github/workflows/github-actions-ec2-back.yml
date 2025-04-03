@@ -1,50 +1,33 @@
-name: Push-to-EC2-Back
+name: Deploy-Backend
 
-# Trigger deployment only on push to main branch
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-      - master
 
 jobs:
   deploy:
-    name: Deploy to EC2 on master branch push
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout the files
+      - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Deploy to Server 1
-        uses: easingthemes/ssh-deploy@main
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY_BACK }}
-          REMOTE_HOST: ${{ secrets.HOST_DNS }}
-          REMOTE_USER: ${{ secrets.USERNAME }}
-          TARGET: ${{ secrets.TARGET_DIR }}
-
-      - name: Executing remote ssh commands using ssh key
+      - name: Deploy to Backend Server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.HOST_DNS }}
+          host: ${{ secrets.BACKEND_HOST_DNS }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY_BACK }}
           script: |
-            cd home
-            sudo mv * /var/www/html
+            cd ~
+            rsync -av --delete ~/ /var/www/html/
             sudo apt update && sudo apt upgrade -y
-            sudo apt install -y curl
             curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-            sudo apt install nodejs
-
-            node -v
-            npm -v
-
+            sudo apt install -y nodejs npm pm2 nginx
             cd /var/www/html
             sudo npm install
-            npm update
-            npm start
+            pm2 start npm --name "backend" -- start
+            pm2 save
+            pm2 startup
+            sudo systemctl restart nginx
