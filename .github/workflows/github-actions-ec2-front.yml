@@ -12,12 +12,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set proper file ownership on the server
-        run: |
-          sudo chown -R $USER:$USER /var/www/frontend
-          sudo chmod -R 755 /var/www/frontend
-          sudo systemctl restart nginx
-
       - name: Deploy to Frontend Server
         uses: appleboy/ssh-action@master
         with:
@@ -33,6 +27,7 @@ jobs:
             sudo mkdir -p $PROJECT_DIR
             sudo chown -R $USER:$USER $PROJECT_DIR
             sudo chmod -R 755 $PROJECT_DIR
+            sudo systemctl restart nginx
 
             # Use rsync correctly (excluding system files)
             rsync -av --delete --exclude='.bash*' --exclude='.npm' ./home/ $PROJECT_DIR/
