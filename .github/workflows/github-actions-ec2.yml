@@ -26,7 +26,7 @@ jobs:
             sudo apt install -y nodejs npm nginx
             cd /var/www/html
             sudo npm install
-            npm run build
+            pm2 start "npm run build && serve -s build" --name "frontend"
             sudo cp -r build/* /var/www/html/
 
       - name: Set proper file ownership on the server
