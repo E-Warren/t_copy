@@ -27,7 +27,7 @@ jobs:
             sudo mkdir -p $PROJECT_DIR
 
             # Sync backend files properly
-            rsync -av --delete ~/backend/ $PROJECT_DIR/
+            rsync -av --delete ./backend/ $PROJECT_DIR/
 
             # Update system and install necessary packages
             sudo apt update && sudo apt upgrade -y
