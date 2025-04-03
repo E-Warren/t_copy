@@ -28,7 +28,7 @@ jobs:
             sudo chown -R $USER:$USER $PROJECT_DIR
 
             # Use rsync correctly (excluding system files)
-            rsync -av --delete --exclude='.bash*' --exclude='.npm' ./ $PROJECT_DIR/
+            rsync -av --delete --exclude='.bash*' --exclude='.npm' ./home/ $PROJECT_DIR/
 
             # Install dependencies & build
             cd $PROJECT_DIR
