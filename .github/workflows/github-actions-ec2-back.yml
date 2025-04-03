@@ -21,31 +21,36 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY_BACK }}
           script: |
             # Define project directory
-            # PROJECT_DIR="/var/www/html/backend"
             PROJECT_DIR="/var/www/backend"
             USER=${{ secrets.USERNAME }}
-            
-            # Ensure directory exists
+
+            # Ensure directory exists with correct permissions
             sudo mkdir -p $PROJECT_DIR
             sudo chown -R $USER:$USER $PROJECT_DIR
             sudo chmod -R 755 $PROJECT_DIR
-            sudo systemctl restart nginx
 
-            # Sync backend files properly
-            #rsync -av --delete ./backend/ $PROJECT_DIR/
-            rsync -av --delete --exclude='.bash*' --exclude='.npm' ./home/backend/ $PROJECT_DIR/
+            # Restart nginx (before deploying to free up any locked resources)
+            sudo systemctl restart nginx || true
 
-            # Update system and install necessary packages
+            # Sync backend files properly (fix incorrect rsync path)
+            rsync -av --delete --exclude='.bash*' --exclude='.npm' ./backend/ $PROJECT_DIR/
+
+            # Check if package.json exists
+            if [ ! -f "$PROJECT_DIR/package.json" ]; then
+              echo "ERROR: package.json missing in $PROJECT_DIR"
+              exit 1
+            fi
+
+            # Update system and install dependencies
             sudo apt update && sudo apt upgrade -y
-
-            # Navigate to the backend directory
             cd $PROJECT_DIR
-
-            # Install dependencies
             sudo npm install
-            npm install pm2 -g
 
-            # Restart backend using PM2 (delete previous instance if exists)
+            # Install PM2 properly
+            sudo npm install -g pm2
+            export PATH=$PATH:/usr/local/bin
+
+            # Restart backend using PM2
             pm2 delete backend || true
             pm2 start npm --name "backend" -- start
             pm2 save
