@@ -22,7 +22,7 @@ jobs:
           script: |
             # Define project directory
             PROJECT_DIR="/var/www/backend"
-            USER=${{ secrets.USERNAME }}
+            sudo chown -R ${{ secrets.USERNAME }}:${{ secrets.USERNAME }} $PROJECT_DIR
 
             # Debug output
             echo "Debug: USER is set to '$USER'"
