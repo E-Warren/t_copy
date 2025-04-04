@@ -24,6 +24,9 @@ jobs:
             PROJECT_DIR="/var/www/backend"
             USER=${{ secrets.USERNAME }}
 
+            # Debug output
+            echo "Debug: USER is set to '$USER'"
+
             # Ensure directory exists with correct permissions
             sudo mkdir -p $PROJECT_DIR
             sudo chown -R $USER:$USER $PROJECT_DIR
