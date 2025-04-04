@@ -22,17 +22,18 @@ jobs:
           script: |
             # Define project directory
             PROJECT_DIR="/var/www/backend"
+            USER=${{ secrets.USERNAME }}
 
             # Ensure directory exists with correct permissions
             sudo mkdir -p $PROJECT_DIR
-            sudo chown -R ubuntu:ubuntu $PROJECT_DIR
+            sudo chown -R $USER:$USER $PROJECT_DIR
             sudo chmod -R 755 $PROJECT_DIR
 
             # Restart nginx (before deploying to free up any locked resources)
             sudo systemctl restart nginx || true
 
             # Sync backend files properly (fix incorrect rsync path)
-            rsync -av --delete --exclude='.bash*' --exclude='.npm' ./backend/ $PROJECT_DIR/
+            rsync -av --delete --exclude='.bash*' --exclude='.npm' ./backend/ ./
 
             # Check if package.json exists
             if [ ! -f "$PROJECT_DIR/package.json" ]; then
