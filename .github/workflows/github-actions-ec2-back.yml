@@ -33,7 +33,7 @@ jobs:
             sudo systemctl restart nginx || true
 
             # Sync backend files properly (fix incorrect rsync path)
-            rsync -av --delete --exclude='.bash*' --exclude='.npm' ./backend/ ./
+            rsync -av --delete --exclude='.bash*' --exclude='.npm' ./backend/ $PROJECT_DIR/
 
             # Check if package.json exists
             if [ ! -f "$PROJECT_DIR/package.json" ]; then
