@@ -1,0 +1,20 @@
+name: deploy-front
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: executing remote ssh commands using ssh key
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST_DNS_FRONT }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY_FRONT }}
+          port: ${{ secrets.PORT_FRONTEND }}
+          script: |
+            whoami
