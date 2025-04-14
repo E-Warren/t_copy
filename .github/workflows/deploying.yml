@@ -1,0 +1,40 @@
+name: deploy - PRODUCTION SIDE FE
+
+on:
+  push:
+    branches:
+      - deployed  # this is tappt.live (non-dev)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH Key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY_PROD }}" > ec2-prod-key.pem
+          chmod 600 ec2-prod-key.pem
+
+      - name: Rsync to EC2
+        run: |
+          rsync -az --delete -e "ssh -i ec2-prod-key.pem -o StrictHostKeyChecking=no" ./ "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_PROD }}:/home/${{ secrets.USERNAME }}/frontend-temp"
+
+      - name: Rebuild React on EC2
+        run: |
+          ssh -i ec2-prod-key.pem -o StrictHostKeyChecking=no "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_PROD }}" << 'EOF'
+            cd ~/frontend-temp
+            
+          # install node
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+          \. "$HOME/.nvm/nvm.sh"
+          nvm install 22
+          npm install
+
+          # build and move to served folder
+          npx expo export --platform web
+          sudo rm -rf /var/www/frontend/*
+          sudo cp -r dist/* /var/www/frontend/
+          EOF
