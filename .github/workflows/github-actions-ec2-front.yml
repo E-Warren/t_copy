@@ -1,47 +1,47 @@
-name: Deploy-Frontend
-on:
-  push:
-    branches:
-      - main
+# name: Deploy-Frontend
+# on:
+#   push:
+#     branches:
+#       - main
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v2
 
-      - name: Deploy to Frontend Server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST_DNS_FRONT }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY_FRONT }}
-          script: |
-            # Define project directory
-            PROJECT_DIR=/var/www/frontend
-            USER=${{ secrets.USERNAME }}
+#       - name: Deploy to Frontend Server
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: ${{ secrets.HOST_DNS_FRONT }}
+#           username: ${{ secrets.USERNAME }}
+#           key: ${{ secrets.EC2_SSH_KEY_FRONT }}
+#           script: |
+#             # Define project directory
+#             PROJECT_DIR=/var/www/frontend
+#             USER=${{ secrets.USERNAME }}
 
-            # Ensure the directory exists
-            sudo mkdir -p $PROJECT_DIR
-            sudo chown -R $USER:$USER $PROJECT_DIR
-            sudo chmod -R 755 $PROJECT_DIR
-            sudo systemctl restart nginx
+#             # Ensure the directory exists
+#             sudo mkdir -p $PROJECT_DIR
+#             sudo chown -R $USER:$USER $PROJECT_DIR
+#             sudo chmod -R 755 $PROJECT_DIR
+#             sudo systemctl restart nginx
 
-            # Use rsync correctly (excluding system files)
-            rsync -av --delete --exclude='.bash*' --exclude='.npm' ./home/ $PROJECT_DIR/
+#             # Use rsync correctly (excluding system files)
+#             rsync -av --delete --exclude='.bash*' --exclude='.npm' ./home/ $PROJECT_DIR/
 
-            # Install dependencies & build
-            cd $PROJECT_DIR
-            sudo apt update && sudo apt upgrade -y
-            npm install
-            npm run build
+#             # Install dependencies & build
+#             cd $PROJECT_DIR
+#             sudo apt update && sudo apt upgrade -y
+#             npm install
+#             npm run build
 
-            # Serve with PM2
-            sudo npm install -g pm2 serve
-            pm2 delete frontend || true  # Ensure previous instance is stopped
-            pm2 start "serve -s build -p 8080" --name "frontend"            
+#             # Serve with PM2
+#             sudo npm install -g pm2 serve
+#             pm2 delete frontend || true  # Ensure previous instance is stopped
+#             pm2 start "serve -s build -p 8080" --name "frontend"            
 
-            # Restart Nginx
-            sudo systemctl restart nginx
+#             # Restart Nginx
+#             sudo systemctl restart nginx
