@@ -86,7 +86,7 @@ const authenticateToken = (req, res, next) => {
 
 //root route to avoid "Cannot GET /" in backend terminal
 app.get("/", (req, res) => {
-  res.send("Server is running!");
+  res.send("emily is awesome!");
 });
 
 //sign IN --> checking U&P
