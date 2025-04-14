@@ -35,11 +35,11 @@ jobs:
             npm install
 
             # Replace old code
-            pm2 stop backend || true
+            pm2 stop backend-server || true
             rm -rf ~/backend
             mv ~/backend-temp ~/backend
 
             cd ~/backend
-            pm2 start backend-server.js --name backend
+            pm2 start backend-server.js --name backend-server
             pm2 save
           EOF
