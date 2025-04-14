@@ -26,10 +26,14 @@ jobs:
         run: |
           ssh -i ec2-dev-key.pem -o StrictHostKeyChecking=no "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_DEV }}" << 'EOF'
             cd ~/frontend-temp
+
+          # install node
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
           \. "$HOME/.nvm/nvm.sh"
           nvm install 22
           npm install
+
+          # build and move to served folder
           npx expo export --platform web
           sudo rm -rf /var/www/frontend/*
           sudo cp -r dist/* /var/www/frontend/
