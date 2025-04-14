@@ -32,8 +32,7 @@ const bodyParser = require("body-parser");
 
 app.use(
   cors({
-   // origin: "http://localhost:8081",
-    origin: "http://ec2-18-218-57-172.us-east-2.compute.amazonaws.com",
+    origin: "http://localhost:8081",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -86,7 +85,7 @@ const authenticateToken = (req, res, next) => {
 
 //root route to avoid "Cannot GET /" in backend terminal
 app.get("/", (req, res) => {
-  res.send("emily is awesome!");
+  res.send("Server is running!");
 });
 
 //sign IN --> checking U&P
@@ -379,7 +378,7 @@ app.get("/createdecks/:id", authenticateToken, async (req, res) => {
 
         //query for obtaining all decks and their descriptions
         const query = 
-        `SELECT fld_deck_name, fld_card_q_pk, fld_card_q, fld_q_ans_pk, fld_card_ans
+        `SELECT fld_deck_name, fld_card_q_pk, fld_card_q, fld_q_ans_pk, fld_card_ans, fld_ans_correct
          FROM card_decks.tbl_q_ans AS a INNER JOIN card_decks.tbl_card_question AS q
 	        ON a.fld_card_q_fk = q.fld_card_q_pk
 	        INNER JOIN card_decks.tbl_card_decks AS c
@@ -452,25 +451,26 @@ app.put("/createdecks/:id", authenticateToken, async (req, res) => {
 
             //for every question in deck, and for every answer in question, insert
             for (q of QnA) {
-                query = 
-                `INSERT INTO card_decks.tbl_card_question(fld_deck_id_fk, fld_card_q)
-                VALUES($1, $2)
-                RETURNING fld_card_q_pk;
+              query = 
+              `INSERT INTO card_decks.tbl_card_question(fld_deck_id_fk, fld_card_q)
+              VALUES($1, $2)
+              RETURNING fld_card_q_pk;
+              `
+              questionID  = await pool.query(query, [id, q.questionText])
+
+              console.log("successful insert question: ", q.questionText)
+
+              //edited this -> to allow both answer text and correctness to be added into database by iterating through QnA array
+              for (let i = 0; i < q.answers.length; i++) {
+                query =
+                `INSERT INTO card_decks.tbl_q_ans(fld_card_q_fk, fld_card_ans, fld_ans_correct)
+                VALUES($1, $2, $3)
+                RETURNING *;
                 `
-                questionID  = await pool.query(query, [id, q.questionText])
-
-                console.log("successful insert question: ", q.questionText)
-
-                for (ans of q.answers) {
-                    query =
-                    `INSERT INTO card_decks.tbl_q_ans(fld_card_q_fk, fld_card_ans, fld_ans_correct)
-                    VALUES($1, $2, $3)
-                    RETURNING *;
-                    `
-                    //cannot add anything other than 'False' to question correctness for npw
-                    insert_all  = await pool.query(query, [questionID.rows[0].fld_card_q_pk, ans, 'FALSE'])
-                    console.log("Inserted answer:", ans, "questionID:", questionID.rows[0].fld_card_q_pk)
-                }
+                //query for inserting answer text and correctness into database
+                insert_all  = await pool.query(query, [questionID.rows[0].fld_card_q_pk, q.answers[i], q.correctAnswers[i]])
+                console.log("Inserted answer:", q.answers[i], "correctness:", q.correctAnswers[i], "questionID:", questionID.rows[0].fld_card_q_pk)
+             }
             }
 
             res.status(201).json({message: "Deck update was a success!"})
@@ -523,8 +523,6 @@ app.get("/answerchoices/:deckID", async (req, res) => {
       const {deckID} = req.params
 
       //query for obtaining all questions and answers
-        console.log("loading hosted deck for this student...");
-
         const query = 
         `SELECT fld_card_q, fld_card_q_pk, fld_card_ans, fld_ans_correct, fld_q_ans_pk
          FROM card_decks.tbl_q_ans AS a INNER JOIN card_decks.tbl_card_question AS q
@@ -536,8 +534,6 @@ app.get("/answerchoices/:deckID", async (req, res) => {
         //wait for query to finalize
         const deck = await pool.query(query, [deckID])
 
-        console.log(deck)
-
         //send an 201 (OK) status as for success
         //return query in JSON format
         res.status(201).json(deck.rows)
@@ -545,6 +541,7 @@ app.get("/answerchoices/:deckID", async (req, res) => {
     //throw 500 error if any error occurred during or after querying
     catch(error) {
       console.log("we gots an error during get /answerchoices:");
+      console.log(error);
       res.status(500).json(error)
     }
 })
@@ -707,6 +704,63 @@ const gameState = {
   hasStarted: false,
 }
 
+const resetGameState = async () => {
+  gameState.answers = [];
+  gameState.deckID = undefined;
+  gameState.currentQuestion = undefined;
+  gameState.studentsInRoom = [];
+  gameState.hasStarted = false;
+}
+
+const handleRemoveAll = async (studentName, type, leavingRoomCode)=> {
+  console.log("Removing websocket connection");
+
+  if (type === "student"){
+    gameState.studentsInRoom = gameState.studentsInRoom.filter(name => name != studentName);
+    websockets.forEach((websocket) => {
+      websocket.send(JSON.stringify({
+        type: "studentLeft",
+        studentName, //return the time left
+      }))
+    })
+
+    gameState.studentsInRoom = gameState.studentsInRoom.filter(name => name !== studentName);
+    console.log("Students when one person leaves", gameState.studentsInRoom);
+
+    try {
+      const studentLeftQuery = `DELETE FROM room_students.tbl_room
+      WHERE fld_room_code = $1 and type = 'student';`;
+      const removeStudent = await pool.query(studentLeftQuery, [leavingRoomCode]);
+      console.log("Student successfully deleted from database");
+    } catch (error) {
+      console.log("There was an error when removing the student from database", error);
+    }
+
+
+  } else {
+    //deleted EVERYTHING if host leaves
+    resetGameState();
+    //handle when teacher leaves
+    websockets.forEach((websocket) => {
+      websocket.send(JSON.stringify({
+        type: "hostLeft",
+      }))
+    })
+
+    try{
+      const hostLeftQuery = `DELETE FROM room_students.tbl_room
+      WHERE fld_room_code = $1`;
+      const removeRoom = await pool.query(hostLeftQuery, [leavingRoomCode]);
+      console.log("successfully deleted the room from the game");
+    } catch (error) {
+      console.log("Error when deleting the room", error);
+    }
+  }
+
+}
+
+let intervals;
+
 app.ws('/join', function(ws, req) {
   websockets.push(ws); //adds connection to array
   let studentName; 
@@ -715,23 +769,17 @@ app.ws('/join', function(ws, req) {
     ws.on('message', async function(msg) { //get the message
       console.log(msg);
       const userMessage = JSON.parse(msg);
-      let intervals;
+      
 
       if (userMessage.type === 'join'){ //called when a student joins the room
+        console.log("Going to join the room"); 
         const returnedName = await joinRoom(userMessage.data); //gets the randomly generated student name
         studentName = returnedName; //store student's name
         type = "student";
         leavingRoomCode = userMessage.data.code;
+        gameState.studentsInRoom.push(returnedName);
         ws.send(JSON.stringify({type: "newStudentName", data: returnedName, code: userMessage.data.code})); //will store the message in zustand
-        const findGame = games.find((gameID) => gameID.roomCode === userMessage.data.code); //check if the game exists (if there is a host)
-        if (findGame !== undefined){ //if game exists
-          findGame.students.push({ //add student to the game
-            playerName: returnedName,
-          });
-          gameState.studentsInRoom.push(returnedName);
-          console.log("Students in game when joined:", gameState.studentsInRoom);
-          const listOfStudents = []; //stores the list of students in the game
-          findGame.students.forEach((student) => listOfStudents.push(student.playerName)); //will add the new student to the current list of students
+        const listOfStudents = gameState.studentsInRoom; //stores the list of students in the game
 
           websockets.forEach((websocket) => { //will update the students in the game (sends to each websocket)
             websocket.send(JSON.stringify({
@@ -739,10 +787,6 @@ app.ws('/join', function(ws, req) {
               data: listOfStudents
             }));
           })
-          
-        } else {
-          console.log("Error: the game could not be found (no host yet)");
-        }
       }
 
       if (userMessage.type === "host"){ //called when the teacher hits host deck
@@ -750,10 +794,6 @@ app.ws('/join', function(ws, req) {
         const returnedRoom = await hostRoom(); //will randomly generate a room code
         leavingRoomCode = returnedRoom;
         console.log("Teacher connected");
-        games.push({ //adds the room code and creates an empty array of students
-          roomCode: returnedRoom,
-          students: []
-        });
 
         gameState.deckID = userMessage.deck; // edit: now saves deckID from frontend! yay!
         console.log("hosted deckID:", gameState.deckID)
@@ -798,10 +838,11 @@ app.ws('/join', function(ws, req) {
 
         const studentName = userMessage.name;
         const studentAnswer = userMessage.answer;
-        const questionID = Number(userMessage.questionNum); //convert to int because frontend made it string (probably b/c of json stringify)
+        const questionID = Number(userMessage.questionID); //convert to int because frontend made it string (probably b/c of json stringify)
         const studentClicks = userMessage.clickCount;
         const currentQuestion = userMessage.currentQuestion;
         const correctness = userMessage.correctness;
+        const questionNum = userMessage.questionNum;
 
         gameState.currentQuestion = currentQuestion;
         console.log("current question: ", gameState.currentQuestion);
@@ -812,6 +853,7 @@ app.ws('/join', function(ws, req) {
           questionID,
           studentClicks,
           correctness,
+          questionNum,
           currentQuestion,  //adding this here so backend can send allStudentsAnsweredQuestion when all students answered -> should we change this? its redundant
         });
 
@@ -829,8 +871,10 @@ app.ws('/join', function(ws, req) {
         console.log("students in the room: ", gameState.studentsInRoom)
 
         if (gameState.studentsInRoom.length == numStudentsWhoAnswered.length){
+          console.log("Going to stop the timer now!")
           clearInterval(intervals); //stop the interval cause all students answered
           websockets.forEach((websocket) => {
+            console.log("sent allstudentsansweredquestion");
             websocket.send(JSON.stringify({
               type: "allStudentsAnsweredQuestion",
             }))
@@ -839,16 +883,63 @@ app.ws('/join', function(ws, req) {
         }
       }
 
+      //send students their correctness for their answers
+      if (userMessage.type === "correctnessPls") {
+        const name = userMessage.data.name;
+        const currQNum = userMessage.data.currQNum;
+
+        //finding student's answer correctness (if correct or not)
+        //i know this code is yucky looking
+        let found = gameState.answers.filter(function (element) {
+          if (element.studentName === name && element.questionNum === currQNum) {
+            console.log("for question:", currQNum, "student", name, " answer correctness is", element.correctness);
+            console.log("found student!");
+            return true;
+          }
+          console.log("did not find student...", "question:", element.questionNum, "student:", element.studentName, "correctness:", element.correctness)
+          return false
+        })
+
+
+        //finding if current student answer is correct or incorrect
+        //send string to frontend based on what THE determinator finds
+        let determinator = "";
+        if (found.length === 0) {
+          determinator = "failed found";
+        }
+        else {
+          console.log("found ->", found, "; found[0].correctness ->", found[0].correctness);
+          if (found[0].correctness === true){
+            determinator = "correct";
+          }
+          else if (found[0].correctness === false) {
+            determinator = "incorrect";
+          }
+          else {
+            determinator = "invalid :(";
+          }
+        }
+
+        console.log("determinator ->", determinator);
+
+        //send answer correctness to the student socket
+        ws.send(JSON.stringify({
+          type: "sentAnswerCorrectness",
+          data: determinator,
+        }))
+      }
+
       if (userMessage.type === "countdownStarted"){ //sent when the timer starts on frontend
         let timeLeft = 30;
         intervals = setInterval(decrementSecond, 1000);
         function decrementSecond () {
           timeLeft -= 1; //decrement the time
-          if (timeLeft === 0){ //means time is up!
+          if (timeLeft <= 0){ //means time is up!
             clearInterval(intervals); //stop the interval
             websockets.forEach((websocket) => {
               websocket.send(JSON.stringify({
                 type: "timeUp", //send a message to everyone that time is up
+                data: true
               }))
             })
           } else { //else means there is still time left on the countdown
@@ -861,51 +952,38 @@ app.ws('/join', function(ws, req) {
           }
         }
       }
+      if (userMessage.type === "sendToNextQuestion"){
+        websockets.forEach((websocket) => {
+          websocket.send(JSON.stringify({
+            type: "sendToNextAnswer"
+          }))
+        })
+      }
+
+      //when reading is done -> help route to answerchoices because clicking done
+      if (userMessage.type === "completedReading") {
+        console.log("recieved message that reading was completed...");
+        websockets.forEach((websocket) => {
+          websocket.send(JSON.stringify({
+            type: "clickingOver"
+          }))
+        })
+      }
+
+      if (userMessage.type === "gameEnded"){
+        handleRemoveAll(studentName, type, leavingRoomCode);
+        websockets.forEach((websocket) => {
+          websocket.send(JSON.stringify({
+            type: "gameHasEnded"
+          }))
+        })
+      }
 
     });
 
-    ws.on('close', async () => {
-      console.log("Going to close the websocket!!!!!");
-
-      if (type === "student"){
-        websockets.forEach((websocket) => {
-          websocket.send(JSON.stringify({
-            type: "studentLeft",
-            studentName, //return the time left
-          }))
-        })
-
-        gameState.studentsInRoom = gameState.studentsInRoom.filter(name => name !== studentName);
-        console.log("Students when one person leaves", gameState.studentsInRoom);
-
-        try {
-          const studentLeftQuery = `DELETE FROM room_students.tbl_room
-          WHERE fld_room_code = $1 and type = 'student';`;
-          const removeStudent = await pool.query(studentLeftQuery, [leavingRoomCode]);
-          console.log("Student successfully deleted from database");
-        } catch (error) {
-          console.log("There was an error when removing the student from database", error);
-        }
-
-
-      } else {
-        //handle when teacher leaves
-        websockets.forEach((websocket) => {
-          websocket.send(JSON.stringify({
-            type: "hostLeft",
-          }))
-        })
-
-        try{
-          const hostLeftQuery = `DELETE FROM room_students.tbl_room
-          WHERE fld_room_code = $1`;
-          const removeRoom = await pool.query(hostLeftQuery, [leavingRoomCode]);
-          console.log("successfully deleted the room from the game");
-        } catch (error) {
-          console.log("Error when deleting the room", error);
-        }
-      }
-
+    ws.on('close', async (code, reason) => {
+      handleRemoveAll(studentName, type, leavingRoomCode);
+      ws.close();
     });
   });
 
@@ -919,9 +997,11 @@ app.ws('/join', function(ws, req) {
         WHERE fld_room_code = $1;`;
 
         const checkRoomExists = await pool.query(checkRoomCode, [roomCode]);
+        console.log("The check room exists return is: ");
         console.log(checkRoomExists);
         if (checkRoomExists.rowCount > 0){ //if there is at least 1 row, that means the room exists
-            return res.status(200).json("Room exists!");
+          console.log("Yay the room exists");  
+          return res.status(200).json("Room exists!");
         } else {
             return res.status(404).json("Room not found");
         }
@@ -937,8 +1017,7 @@ app.listen(port, (error) => {
   //error handling for server connection
   if (!error) {
     //running our server at http://127.0.0.1:5000
-    //console.log(`Listening at http://localhost:${port}`);
-    console.log(`Listening at http://ec2-18-218-57-172.us-east-2.compute.amazonaws.com`);
+    console.log(`Listening at http://localhost:${port}`);
   } else {
     console.log("Server connection error: ", error);
   }
