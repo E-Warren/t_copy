@@ -21,12 +21,12 @@ jobs:
 
       - name: Rsync Backend Code
         run: |
-          rsync -az --delete -e "ssh -i backend-key.pem -o StrictHostKeyChecking=no" ./backend "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_BACK }}:./"
+          rsync -az --delete -e "ssh -i backend-key.pem -o StrictHostKeyChecking=no" ./backend/ "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_BACK }}:/home/${{ secrets.USERNAME }}/backend-temp/"
 
       - name: Install & Restart Backend App
         run: |
           ssh -i backend-key.pem -o StrictHostKeyChecking=no "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_BACK }}" << 'EOF'
-            # cd ~/backend-temp
+            cd ~/backend-temp
 
             # install node
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
@@ -37,7 +37,7 @@ jobs:
             # Replace old code
             pm2 stop backend || true
             rm -rf ~/backend
-            mv ~/ ~/backend
+            mv ~/backend-temp ~/backend
 
             cd ~/backend
             pm2 start backend-server.js --name backend
