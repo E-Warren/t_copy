@@ -1,6 +1,11 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useStudentStore } from "./useWebSocketStore";
+import { WebSocketService } from "./webSocketService";
+import { router } from "expo-router";
+import { Audio } from "expo-av";
+import { useIsFocused } from "@react-navigation/native";
 
 interface IncorrectScreenProps {
   timer?: number;
@@ -8,11 +13,102 @@ interface IncorrectScreenProps {
   totalQuestions?: number;
 }
 //Same as the correct screen, the parameters are set to show example data, will be changed later
-const IncorrectScreen: React.FC<IncorrectScreenProps> = ({ timer = 13, questionNumber = 1, totalQuestions = 3 }) => {
+const IncorrectScreen: React.FC<IncorrectScreenProps> = ({ timer = 13}) => {
+  const questionNumber = useStudentStore(state => state.currQuestionNum);
+  const totalQuestions = useStudentStore(state => state.totalQuestions);
+  const playername = useStudentStore(state => state.name); 
+  const setAnsCorrectness = useStudentStore(state => state.setAnsCorrectness);
+  const goToNextQuestion = useStudentStore(state => state.nextQuestion);
+
+  //testing
+  const hasAns = useStudentStore(state => state.hasAnswered);
+
+  //sound!!!!
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  async function playSound() {
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        require("../assets/sound/incorrect.mp3"),
+        { shouldPlay: true, isLooping: true }
+      );
+      soundRef.current = sound;
+      console.log("Playing Sound");
+      await sound.playAsync();
+
+      setTimeout(() => {
+        stopSound();
+      }, 1920); 
+    } catch (error) {
+      console.error("Error Playing sound:", error);
+    }
+  }
+  async function stopSound() {
+    if (soundRef.current) {
+      console.log("Stopping Sound");
+      await soundRef.current.stopAsync();
+      await soundRef.current.unloadAsync();
+      soundRef.current = null;
+    }
+  }
+  useEffect(() => {
+    const soundTimer = setTimeout(() => {
+      playSound();
+    }, 500);
+
+    return () => {
+      clearTimeout(soundTimer);
+      stopSound();
+    };
+  }, []);
+
+  //***temporary*** => substitute until we have teacher frontend routed to this point
+  //setting timeout for 5 seconds so that student can see incorrect page
+  useEffect(() => {
+      if (goToNextQuestion){
+        console.log("student info: ");
+        console.log("goToNextQuestion: ", goToNextQuestion);
+        console.log("hasAnswered: ", hasAns);
+
+        if ((questionNumber + 1) !== totalQuestions){
+          useStudentStore.setState({ hasAnswered: false});
+          useStudentStore.setState({ nextQuestion: false });
+          
+          //test
+          console.log("goToNextQuestion: ", goToNextQuestion);
+
+          useStudentStore.setState({ currQuestionNum: questionNumber + 1});
+          useStudentStore.setState({ allStudentsAnswered: false });
+          console.log("go to next question is set to: ", useStudentStore.getState().nextQuestion);
+          console.log("Everyone answered is now set to: ", useStudentStore.getState().allStudentsAnswered);
+          console.log("resetting correctness... rerouting to /answerchoices");
+          setAnsCorrectness("");
+          
+          //go to student clicks now
+          router.replace("/studentClicks");
+
+        } else {
+          router.replace("/endgame");
+        }
+      }
+
+  }, [goToNextQuestion])
+
+  useEffect(() => {
+    //test
+    useStudentStore.setState({ nextQuestion: false });
+
+    console.log("Reseting the timer");
+    useStudentStore.setState({ isTimeUp: false });
+    useStudentStore.setState({ currentTime: 30 });
+    useStudentStore.setState({ allStudentsAnswered: false });
+  }, [])
+
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Tappt</Text>
-      <Text style={styles.username}>pink goose</Text>
+      <Text style={styles.username}>{playername}</Text>
 
       <View style={styles.iconContainer}>
         <MaterialIcons name="cancel" size={200} color="#ff5252" />
@@ -22,7 +118,7 @@ const IncorrectScreen: React.FC<IncorrectScreenProps> = ({ timer = 13, questionN
       <Text style={styles.tryAgainText}>Better luck next time...</Text>
 
       <Text style={styles.timer}>{timer}</Text>
-      <Text style={styles.questionCounter}>Question {questionNumber} / {totalQuestions}</Text>
+      <Text style={styles.questionCounter}>Question {questionNumber + 1} / {totalQuestions}</Text>
     </View>
   );
 };

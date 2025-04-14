@@ -29,8 +29,7 @@ export default function GamePinScreen() { // Function used to get pin from User
 
       try{
         //call the backent endpoint to determine if the entered code is a valid code (meaning there is already a host)
-        //const response = await fetch('http://localhost:5000/validRoomCode', {        
-        const response = await fetch('ec2-18-218-57-172.us-east-2.compute.amazonaws.com/validRoomCode', {
+        const response = await fetch('http://localhost:5000/validRoomCode', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -43,8 +42,6 @@ export default function GamePinScreen() { // Function used to get pin from User
         const data = await response.json();
 
         if (response.ok){
-          //create the student's websocket connection
-          await WebSocketService.createWebSocket();
           console.log("Created :)");
           //Call the backend message event "join" to add the student to the room
           WebSocketService.sendMessage(JSON.stringify({

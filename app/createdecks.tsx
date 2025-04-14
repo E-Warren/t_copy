@@ -140,8 +140,7 @@ export default function CreateDeckScreen() {
     try {
       const token = localStorage.getItem('token');
 
-      //const response = await fetch('http://localhost:5000/createdecks', {
-        const response = await fetch('http://ec2-18-218-57-172.us-east-2.compute.amazonaws.com/createdecks', {
+        const response = await fetch('http://localhost:5000/createdecks', {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
