@@ -12,6 +12,14 @@ export default function studentClicksScreen() {
   const setIsClickable = useStudentStore(state => state.setIsClickable) //fxn to turn click listening on/off
   const clickIncrement = useStudentStore(state => state.incClickCount); //fxn for clickcount + inc value
 
+  //for when reading is completed
+  const completedReading = useStudentStore(state => state.completedReading);
+  const setCompletedReading = useStudentStore(state => state.setCompletedReading);
+
+  //testing
+  const nextQuestion = useStudentStore(state => state.nextQuestion);
+  console.log("next question =", nextQuestion);
+
   useEffect(() => {
     //time out for a little bit to ignore routing "click"
     const timeout = setTimeout(() => {
@@ -60,11 +68,15 @@ export default function studentClicksScreen() {
   }, [isClickable, clickIncrement, clickCount]);
 
 
-  const onNextPress = () => {
-    console.log("Next pressed");
-    setIsClickable(false);
-    router.push("/");
-  };
+  useEffect(() => {
+    if (completedReading) {
+      console.log("clicking over... go to answerchoices");
+      setCompletedReading(false);
+      router.replace("/answerchoices");
+    }
+
+  }, [completedReading])
+
 
   return (
 
@@ -79,16 +91,9 @@ export default function studentClicksScreen() {
             Click Count:
         </Text>
         <Text style={styles.clickText}> 
-        {/* TODO: Hardcoded a click count here - add updated count to variables up top */}
             {clickCount}
         </Text>
       </View>
-
-      {/* temporary: Next Button */}
-      <TouchableOpacity style={styles.nextButton} onPress={onNextPress}>
-        <Text style={styles.nextButtonText}>Next →</Text>
-      </TouchableOpacity>
-
     </View>
   );
 }

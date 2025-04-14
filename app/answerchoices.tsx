@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
 import { useStudentStore } from "./useWebSocketStore";
 import { WebSocketService } from "./webSocketService";
 import { useEffect, useState } from "react";
+import { router } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 
 interface AnswerChoiceScreenProps {
   questionID?: number;
@@ -19,7 +21,6 @@ interface AnswerChoiceScreenProps {
   questionNumber?: number;
   totalQuestions?: number;
   onAnswerPress?: (value: string, correct: boolean, questionID: number, currentQuestion: string) => void;
-  onNextPress?: () => void; // NEW PROP
 }
 
 //obtain deckID from backend teacher socket
@@ -30,10 +31,9 @@ const requestDeckID = async () => {
 }
 
 const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
+  const isFocused = useIsFocused();
   const arrowIcons = ["↑", "←", "→", "↓"];
 
-  //for keeping track of question count
-  const [currIndex, setIndex] = useState(0);
   //for setting questions up
   const [questions, setQuestions] = useState<AnswerChoiceScreenProps[]>([
       { question: "", questionID: -1, choices: [
@@ -48,25 +48,51 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
   //obtain player's name
   const playername = useStudentStore(state => state.name);
 
-  //to determine if everyone answered question
-  const everyoneAnswered = useStudentStore(state => state.allStudentsAnswered);
-  const setAllStudentsAnswered = useStudentStore(state => state.setAllStudentsAnswered);
-
   //question length
   const totalQuestions = questions.length;
+  //set total number of questions
+  const setTotalQuestions = useStudentStore(state => state.setTotalQuestions);
 
-  //updates the current question index if next is pressed
-  //**FOR DEVELOPMENT PURPOSES**
-  const onNextPress = () => {
-    console.log("Next pressed");
-    if (currIndex < questions.length) {
-      setIndex(currIndex + 1);
-      setAllStudentsAnswered(false);
+  //get current question through zustand state management
+  const currQuestionNum = useStudentStore(state => state.currQuestionNum);
+
+  const timeIsUp = useStudentStore(state => state.isTimeUp);
+  const studentAnwered = useStudentStore(state => state.hasAnswered);
+
+  //click count!!!!!!!!
+  const clickCount = useStudentStore(state => state.clickCount);
+  
+  //console.log("current question # ->", currQuestionNum);
+
+  //for avoiding error about this file affecting the rendering ability of /teacherwaiting
+  const [letsgo, setletsgo] = useState(false);
+
+  //if for some reason, nextQuestion is set to true prematurely, set it to false
+  //should solve multiple games problem
+  const nextQuestion = useStudentStore(state => state.nextQuestion);
+    //testing
+    console.log("next question =", nextQuestion);
+
+  useEffect(() => {
+    if (nextQuestion) {
+      useStudentStore.setState({nextQuestion: false});
     }
-    else {
-      Alert.alert("All questions are done");
+  }, [nextQuestion])
+
+  //set total questions -> so that /teacherwaiting doesn't have to rerender
+  useEffect(() => {
+    setTotalQuestions(totalQuestions);
+  }, [setTotalQuestions, totalQuestions]);
+
+  //if its time to go to waiting room, we go to waiting room
+  useEffect(() => {
+    if (letsgo === true) {
+      console.log("Routing to the waiting screen");
+      router.replace("/waiting");
+      setletsgo(false);
+      useStudentStore.setState({ hasAnswered: true});
     }
-  }
+  }, [letsgo])
 
   //save student answers by sending them to backend!
   const onAnswerPress = (answer: string, correct: boolean, questionID: number, currentQuestion: string) => {
@@ -75,20 +101,17 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
         type: "studentAnswer", 
         name: playername, 
         answer: answer,  
-        questionNum: questionID,
+        questionID: questionID,
         currentQuestion: currentQuestion,
         correctness: correct,
-        clickCount: 1, //CHANGE THIS -> HARDCODED
+        questionNum: currQuestionNum,
+        clickCount: clickCount, //click count now added yayayyay
       }));
-  }
+      console.log("click count -> ", clickCount)
+      console.log("correctness ->", correct);
 
-  //for checking if everyone has answered -> configure this later to have correct routing
-  useEffect(() => {
-    console.log("checking if everyone answered current question...");
-    if (everyoneAnswered == true) {
-      console.log("everyone answered!");
-    }
-  }, [everyoneAnswered]);
+      setletsgo(true);
+  }
 
   //for obtaining questions & answers for answer diamond display
   useEffect(() => {
@@ -96,15 +119,14 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
     const GetDeck = async () => {
 
       //deckID is preset to -1 in zustand. we need teacher's deck ID
-      if (deckID == -1)  {
-        console.log("waiting for valid deck...");
-        return;
+      //edited this so we're not constantly querying database for each question
+      if (deckID != -1)  {
+        console.log("got valid deck");
       }
 
       //because I cant have request body for GET requests -> send deckID through parameters (yayy)
       try {
-       // const response = await fetch(`http://localhost:5000/answerchoices/${deckID}`, {
-        const response = await fetch(`http://ec2-18-218-57-172.us-east-2.compute.amazonaws.com/answerchoices/${deckID}`, {
+        const response = await fetch(`http://localhost:5000/answerchoices/${deckID}`, {
           method: 'GET',
           headers: {
               'Content-Type': 'application/json'
@@ -119,7 +141,7 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
           throw new Error("Failed to get deck.");
         }
 
-        const qArr = [];
+        const qArr: Array<any> = [];
         const qMap = new Map();
 
         //mapping each question, questionID, and answer to a map
@@ -162,7 +184,6 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
 
         //set our states up yippee
         setQuestions(qArr);
-        setIndex(0);
     
       } 
       catch (error) {
@@ -172,7 +193,7 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
     };
 
     //helps ensure that we don't load the screen until we get the teacher's deckID from backend
-    if (deckID === -1) {
+    if (deckID == -1) {
       requestDeckID();
     }
     //if we got the deckID, we will send a GET request for obtaining questions
@@ -182,73 +203,109 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
 
   }, [deckID]);
 
+  let answerSent = false;
+
+  useEffect(() => {
+
+    if (!isFocused) {
+      return;
+    }
+    if (timeIsUp && !studentAnwered && !answerSent){
+      console.log("Sending no answer")
+      if (!answerSent){
+        answerSent = true;
+        useStudentStore.setState({ ansCorrectness: 'incorrect' })
+        useStudentStore.setState({ hasAnswered: true});
+        WebSocketService.sendMessage(JSON.stringify({
+          type: "studentAnswer",
+          name: playername,
+          answer: "No answer",
+          questionID: questions[currQuestionNum]?.questionID?? -1,
+          currentQuestion: questions[currQuestionNum]?.question?? "",
+          correctness: "incorrect",
+          questionNum: currQuestionNum,
+          clickCount: clickCount, //updated: click counts stored
+        }))
+        console.log("Routing to the incorrect screen");
+        router.replace('/incorrect');
+      }
+    }
+  }, [timeIsUp])
+
   const timer = useStudentStore(state => state.currentTime);
-  const name = useStudentStore(state => state.name);
   useEffect(() => {
     const keydownHandler = (event: KeyboardEvent) => {
       console.log(event);
       if (event.key === "ArrowUp"){
         console.log("Student pressed the up arrow key");
-        const choice = questions[currIndex]?.choices?.find(c => c.label === "top");
+        const choice = questions[currQuestionNum]?.choices?.find(c => c.label === "top");
         if (choice){
           console.log("The student chose the up arrow with value: ", choice.value);
           WebSocketService.sendMessage(JSON.stringify({
             type: "studentAnswer",
-            data: {
-              name,
-              answer: choice.value,
-              questionNumber: questions[currIndex]?.questionID,
-              clickCount: 100, //TODO: update this once the clicks are stored
-            }
+            name: playername,
+            answer: choice.value,
+            questionID: questions[currQuestionNum]?.questionID?? -1,
+            currentQuestion: questions[currQuestionNum]?.question?? "",
+            correctness: choice.correct,
+            questionNum: currQuestionNum,
+            clickCount: clickCount, //updated: click counts stored
           }))
+          setletsgo(true);
         }
       }
       if (event.key === "ArrowDown") {
         console.log("Student pressed the down arrow key");
-        const choice = questions[currIndex]?.choices?.find(c => c.label === "bottom");
+        const choice = questions[currQuestionNum]?.choices?.find(c => c.label === "bottom");
         if (choice) {
           console.log("The student chose the down arrow with value: ", choice.value);
           WebSocketService.sendMessage(JSON.stringify({
             type: "studentAnswer",
-            data: {
-              name,
-              answer: choice.value,
-              questionNumber: questions[currIndex]?.questionID,
-              clickCount: 100, //TODO: update this once the clicks are stored
-            }
+            name: playername,
+            answer: choice.value,
+            questionID: questions[currQuestionNum]?.questionID?? -1,
+            currentQuestion: questions[currQuestionNum]?.question?? "",
+            correctness: choice.correct,
+            questionNum: currQuestionNum,
+            clickCount: clickCount, //updated: click counts stored
           }))
+          setletsgo(true);
         }
       }
       if (event.key === "ArrowLeft") {
         console.log("Student pressed the left arrow key");
-        const choice = questions[currIndex]?.choices?.find(c => c.label === "left");
+        const choice = questions[currQuestionNum]?.choices?.find(c => c.label === "left");
         if (choice) {
           console.log("The student chose the left arrow with value: ", choice.value);
           WebSocketService.sendMessage(JSON.stringify({
             type: "studentAnswer",
-            data: {
-              name,
-              answer: choice.value,
-              questionNumber: questions[currIndex]?.questionID,
-              clickCount: 100, //TODO: update this once the clicks are stored
-            }
+            name: playername,
+            answer: choice.value,
+            questionID: questions[currQuestionNum]?.questionID?? -1,
+            currentQuestion: questions[currQuestionNum]?.question?? "",
+            correctness: choice.correct,
+            questionNum: currQuestionNum,
+            clickCount: clickCount, //updated: click counts stored
           }))
+          setletsgo(true);
         }
       }
       if (event.key === "ArrowRight") {
         console.log("Student pressed the right arrow key");
-        const choice = questions[currIndex]?.choices?.find(c => c.label === "right");
+        const choice = questions[currQuestionNum]?.choices?.find(c => c.label === "right");
         if (choice) {
           console.log("The student chose the right arrow with value: ", choice.value);
           WebSocketService.sendMessage(JSON.stringify({
             type: "studentAnswer",
-            data: {
-              name,
-              answer: choice.value,
-              questionNumber: questions[currIndex]?.questionID,
-              clickCount: 100, //TODO: update this once the clicks are stored
-            }
+            name: playername,
+            answer: choice.value,
+            questionID: questions[currQuestionNum]?.questionID?? -1,
+            currentQuestion: questions[currQuestionNum]?.question?? "",
+            correctness: choice.correct,
+            questionNum: currQuestionNum,
+            clickCount: clickCount, //updated: click counts stored
           }))
+          setletsgo(true);
         }
       }
     }
@@ -263,10 +320,10 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
       <Text style={styles.header}>Tappt</Text>
       <Text style={styles.username}>{playername}</Text>
 
-      <Text style={styles.question}>{questions[currIndex]?.question || "questions are done. will need appriopriate routing for this."}</Text>
+      <Text style={styles.question}>{questions[currQuestionNum]?.question || "questions are done. will need appriopriate routing for this."}</Text>
 
       <View style={styles.diamondLayout}>
-        {questions[currIndex]?.choices?.map((choice, index) => {
+        {questions[currQuestionNum]?.choices?.map((choice, index) => {
           const positionStyle =
             index === 0
               ? styles.top
@@ -283,8 +340,8 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
             <TouchableOpacity
               key={index}
               style={[styles.choiceButton, backgroundStyle, positionStyle]}
-              //questions[currIndex]?.questionID?? -1 is the fallback number if, somehow, questionID is undefined :')
-              onPress={() => onAnswerPress(choice.value, choice.correct, questions[currIndex]?.questionID?? -1, questions[currIndex]?.question?? "")}
+              //questions[currQuestionNum]?.questionID?? -1 is the fallback number if, somehow, questionID is undefined :')
+              onPress={() => onAnswerPress(choice.value, choice.correct, questions[currQuestionNum]?.questionID?? -1, questions[currQuestionNum]?.question?? "")}
             >
               <View style={styles.choiceContent}>
                 <Text style={styles.arrow}>{arrowIcons[index]}</Text>
@@ -297,13 +354,8 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
 
       <Text style={styles.timer}>{timer}</Text>
       <Text style={styles.questionCounter}>
-        Question {currIndex + 1} / {totalQuestions}
+        Question {currQuestionNum + 1} / {totalQuestions}
       </Text>
-
-      {/* NEW: Next Button */}
-      <TouchableOpacity style={styles.nextButton} onPress={onNextPress}>
-        <Text style={styles.nextButtonText}>Next →</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -422,4 +474,3 @@ const styles = StyleSheet.create({
 });
 
 export default AnswerChoiceScreen;
-

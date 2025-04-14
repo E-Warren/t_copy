@@ -7,8 +7,7 @@ let webSocket: null | WebSocket = null;
 export const WebSocketService = {
     createWebSocket: async () => {
         await new Promise<void>((resolve, reject) => {
-            //webSocket = new WebSocket('ws://localhost:5000/join'); //creates a new websocket
-            webSocket = new WebSocket('ws:ec2-18-218-57-172.us-east-2.compute.amazonaws.com/join'); //creates a new websocket
+            webSocket = new WebSocket('ws://localhost:5000/join'); //creates a new websocket
             webSocket.onopen = () => { //websocket was created fine
                 console.log("Successfull!")
                 resolve();
@@ -33,6 +32,7 @@ export const WebSocketService = {
                     useStudentStore.setState({ currentTime: message.timeLeft });
                 }
                 else if (message.type === "gameHasBegun") {  //backend sends to students that the game has begun
+                    
                     useStudentStore.setState({ startedGame : message.data });
                 }
                 else if (message.type === "sentDeckID") {
@@ -41,14 +41,37 @@ export const WebSocketService = {
                 else if (message.type === "allStudentsAnsweredQuestion") {
                     useStudentStore.setState({ allStudentsAnswered : true });
                 }
+                else if (message.type === "sentAnswerCorrectness") {
+                    useStudentStore.setState({ ansCorrectness: message.data })
+                }
                 else if (message.type === "studentLeft"){
                     useStudentStore.getState().removeStudent(message.studentName);
                 }
                 else if (message.type === "hostLeft"){
                     //remove all students from the game
                     useStudentStore.getState().resetStudents();
+                } 
+                else if (message.type === "timeUp"){
+                    console.log("Recieved the timeup message");
+                    useStudentStore.setState({ isTimeUp: message.data });
+                }
+                else if (message.type === "sendToNextAnswer"){
+                    console.log("Going to the next question")
+                    useStudentStore.setState({ 
+                        nextQuestion: true, 
+                        isTimeUp: false,
+                        currentTime: 30,
+                    });
+                } 
+                else if (message.type === "gameHasEnded"){
+                    useStudentStore.setState({ nextQuestion: true });
+                    useStudentStore.setState({ gameEnded: true });
+                }
+                else if (message.type === "clickingOver") {
+                    useStudentStore.setState({ completedReading: true});
                 }
                 
+
                 console.log(message);
             }
         })
@@ -60,5 +83,11 @@ export const WebSocketService = {
         }
         webSocket.send(message);
     },
+    disconnect: () => {
+        if (webSocket){
+            webSocket.close(1000, "Joining a new game");
+            webSocket = null;
+        }
+    }
 
 }  

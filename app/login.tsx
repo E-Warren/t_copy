@@ -62,8 +62,7 @@ export default function LoginScreen() {
 
   const sendEmailToServer = async (email: string) => {
     try {
-      //const response = await fetch("http://localhost:5000/google-login", {
-      const response = await fetch("http://ec2-18-218-57-172.us-east-2.compute.amazonaws.com/google-login", {
+      const response = await fetch("http://localhost:5000/google-login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -138,8 +137,7 @@ export default function LoginScreen() {
     }
 
     try {
-      //const response = await fetch('http://localhost:5000/login', {
-        const response = await fetch('http://ec2-18-218-57-172.us-east-2.compute.amazonaws.com/login', {
+        const response = await fetch('http://localhost:5000/login', {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
@@ -214,7 +212,7 @@ const [password, onChangePassword] = useState('');
       <View style={styles.middle}>
         {/* The following is the welcome message on left */}
         <View style={styles.left}>
-          <Text style={styles.welcome}>emily is awesome!</Text>
+          <Text style={styles.welcome}>Welcome!</Text>
           <Text style={styles.prepare}>Prepare for learning that EVERYONE will enjoy.</Text>
         </View>
         {/* The following is the right side of the middle section */}

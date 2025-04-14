@@ -1,13 +1,21 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Link } from 'expo-router';
-import { useStudentStore } from "./useWebSocketStore";
-import { WebSocketService } from "./webSocketService";
+import { Link, router } from 'expo-router';
+import { useStudentStore } from './useWebSocketStore';
+import { WebSocketService } from './webSocketService';
 
 const roundScorersScreen = () => {
-
-  const players = useStudentStore((state) => state.students);   //note: in unrouted preview mode, this will be empty!
-
+  const handlePress = () => {
+    const pastQuestionNum = useStudentStore.getState().currQuestionNum;
+    const newQuestionNum = pastQuestionNum + 1;
+    useStudentStore.setState({ currQuestionNum: newQuestionNum });
+    useStudentStore.setState({ currentTime: 30 });
+    //useStudentStore.setState({ isTimeUp: false });
+    useStudentStore.setState({ allStudentsAnswered: false });
+    useStudentStore.setState({ nextQuestion: true });
+    WebSocketService.sendMessage(JSON.stringify({ type: "sendToNextQuestion" }));
+    router.replace('/reading');
+  }
 
   return (
     <View style={styles.container}>
@@ -17,7 +25,7 @@ const roundScorersScreen = () => {
             <Text style={styles.logo}>Tappt</Text>
           </View>
           <View style={styles.headerRight}>
-            <Text style={styles.playerCountText}>{players.length} players</Text> 
+            <Text style={styles.playerCountText}>17 players</Text>
           </View>
         </View>
         <View style={styles.headerTitleContainer}>
@@ -68,13 +76,11 @@ const roundScorersScreen = () => {
       </View>
 
       <View style={styles.buttonsContainer}>
-        <Link href="/">
-          <TouchableOpacity style={[styles.button]}>
-            <Text style={[styles.buttonText]}>
-              Continue →
-            </Text>
-          </TouchableOpacity>
-        </Link>
+        <TouchableOpacity style={[styles.button]} onPress={handlePress}>
+          <Text style={[styles.buttonText]}>
+            Continue →
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -88,7 +94,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#379AE6FF', 
     padding: 20,
     paddingTop: 10,
-    alignItems: 'center'
+    alignItems: 'center',
+    height: "100%",
+    width: "100%",
+    overflow: 'scroll',
   },
   headerContainer: {
     width: '100%',
@@ -155,7 +164,7 @@ const styles = StyleSheet.create({
   },
   buttonsContainer: {
     marginTop: 30,
-    left: 440
+    right: -440
   },
   button: {
     paddingHorizontal: 20,
