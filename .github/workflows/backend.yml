@@ -21,7 +21,7 @@ jobs:
 
       - name: Rsync Backend Code
         run: |
-          rsync -az --delete -e "ssh -i backend-key.pem -o StrictHostKeyChecking=no" ./backend "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_BACK }}:~/"
+          rsync -az --delete -e "ssh -i backend-key.pem -o StrictHostKeyChecking=no" ./backend "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_BACK }}:./"
 
       - name: Install & Restart Backend App
         run: |
