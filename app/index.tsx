@@ -5,7 +5,7 @@ import 'react-native-reanimated';
 export default function Index() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Welcome to the home screen</Text>
+      <Text style={styles.text}>Welcome to the home screen - TESTER TEXT !!!!!!!!</Text>
       <Link href={"/login"} style={styles.button}>
         Go to login screen
       </Link>
