@@ -26,7 +26,7 @@ export default function CreateDeckScreen() {
       const token = localStorage.getItem('token');
         //get deck with [id] from backend
         try {
-            const response = await fetch(`http://localhost:5000/createdecks/${id}`, {
+            const response = await fetch(`https://dev.tappt.live/createdecks/${id}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -216,7 +216,7 @@ export default function CreateDeckScreen() {
     try {
       const token = localStorage.getItem('token');
 
-        const response = await fetch(`http://localhost:5000/createdecks/${id}`, {
+        const response = await fetch(`https://dev.tappt.live//createdecks/${id}`, {
           method: 'PUT',
           headers: {
               'Content-Type': 'application/json',
