@@ -39,11 +39,7 @@ jobs:
             ls
 
             # Write config.ts
-            cd app
-            ls
-            echo "${{ secrets.CONFIG_DEV }}" > config.ts
-            ls
-            cd ..
+            echo "${{ secrets.CONFIG_DEV }}" > ~/app/config.ts
             ls
 
             # Build the frontend
