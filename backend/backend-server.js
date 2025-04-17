@@ -64,7 +64,7 @@ else{  //developing on localhost, indicated by env var
       credentials: true,
     })
   );  
-}*/
+}
 
 //interacts with the sign in button at /login
 //sends 200 status and success JSON file when sign in button is pressed
