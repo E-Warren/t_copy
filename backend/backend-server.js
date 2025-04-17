@@ -32,7 +32,7 @@ const bodyParser = require("body-parser");
 
 //determine source of incoming request depending on localhost vs deployed env
 //use this to avoid mixed-content warning
-if(process.env.IS_LOCALHOST == 1){
+if(process.env.IS_LOCALHOST != 1){
   console.log("NOT local host");
   const allowedOrigins = process.env.REACT_APP_ORIGINS?.split(",") || [];
 
