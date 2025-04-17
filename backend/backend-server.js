@@ -32,7 +32,7 @@ const bodyParser = require("body-parser");
 
 app.use(
   cors({
-    origin: "http://localhost:8081",
+    origin: "https://dev.tappt.live",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
