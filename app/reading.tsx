@@ -46,7 +46,7 @@ const requestDeckID = async () => {
 useEffect(() => {
   const getQuestions = async () => {
     try{
-      const response = await fetch(`http://localhost:5000/answerchoices/${deckID}`, {
+      const response = await fetch(`https://backend.tappt.live/answerchoices/${deckID}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
