@@ -140,7 +140,7 @@ export default function CreateDeckScreen() {
     try {
       const token = localStorage.getItem('token');
 
-        const response = await fetch('https://backend.tappt.live/createdecks', {
+        const response = await fetch('http://localhost:5000/createdecks', {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
