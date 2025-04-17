@@ -30,24 +30,38 @@ const cors = require("cors");
 //bring email from temp for google login
 const bodyParser = require("body-parser");
 
-const allowedOrigins = process.env.REACT_APP_ORIGINS?.split(",") || [];
+//determine source of incoming request depending on localhost vs deployed env
+//use this to avoid mixed-content warning
+if(process.env.IS_LOCALHOST){
+  const allowedOrigins = process.env.REACT_APP_ORIGINS?.split(",") || [];
 
-console.log(`Allowed origins are: ${allowedOrigins}`);
+  console.log(`Allowed origins are: ${allowedOrigins}`);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
+      methods: ["GET", "POST", "PUT", "DELETE"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+      credentials: true,
+    })
+  );
+}
+else{
+  app.use(
+    cors({
+      origin: "http://localhost:8081",
+      methods: ["GET", "POST", "PUT", "DELETE"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+      credentials: true,
+    })
+  );  
+}
 
 //interacts with the sign in button at /login
 //sends 200 status and success JSON file when sign in button is pressed
