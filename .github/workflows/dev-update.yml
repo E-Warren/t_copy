@@ -37,7 +37,9 @@ jobs:
             npm install
 
             # Write config.ts
+            cd ~/app
             echo "${{ secrets.CONFIG_DEV }}" > config.ts
+            cd ..
 
             # Build the frontend
             npx expo export --platform web
