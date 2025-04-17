@@ -7,7 +7,7 @@ let webSocket: null | WebSocket = null;
 export const WebSocketService = {
     createWebSocket: async () => {
         await new Promise<void>((resolve, reject) => {
-            webSocket = new WebSocket('ws://backend.tappt.live/join'); //creates a new websocket
+            webSocket = new WebSocket('wss://backend.tappt.live/join'); //creates a new websocket
             webSocket.onopen = () => { //websocket was created fine
                 console.log("Successfull!")
                 resolve();
