@@ -10,6 +10,7 @@ import * as WebBrowser from "expo-web-browser";
 //import { useNavigate } from 'react-router-dom'; //new
 import Config from './config';
 
+console.log("host is:", Config.BE_HOST);
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -139,6 +140,7 @@ export default function LoginScreen() {
     }
 
     try {
+//ADD LOG STATEMENT
         const response = await fetch(`${Config.BE_HOST}/login`, {
           method: 'POST',
           headers: {
