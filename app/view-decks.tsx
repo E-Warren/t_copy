@@ -14,7 +14,7 @@ interface Deck {
 
 const deleteDeckFromBackend = async (deckId: string, token: string): Promise<boolean> => {
   try {
-        const response = await fetch('https://backend.tappt.live/view-decks', {
+        const response = await fetch('http://localhost:5000/view-decks', {
           method: 'DELETE',
           headers: {
               'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ export default function DecksScreen() {
 
       //get decks from backend
       try {
-        const response = await fetch('https://backend.tappt.live/view-decks', {
+        const response = await fetch('http://localhost:5000/view-decks', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

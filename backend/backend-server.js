@@ -30,9 +30,19 @@ const cors = require("cors");
 //bring email from temp for google login
 const bodyParser = require("body-parser");
 
+const allowedOrigins = process.env.REACT_APP_ORIGINS?.split(",") || [];
+
+console.log(`Allowed origins are: ${allowedOrigins}`);
+
 app.use(
   cors({
-    origin: "https://dev.tappt.live",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
