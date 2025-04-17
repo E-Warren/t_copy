@@ -28,6 +28,7 @@ jobs:
             set -e
 
             cd ~/frontend-temp
+            ls
 
             # Set up node & dependencies
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
@@ -35,11 +36,15 @@ jobs:
             source "\$NVM_DIR/nvm.sh"
             nvm install 22
             npm install
+            ls
 
             # Write config.ts
-            cd ~/app
+            cd app
+            ls
             echo "${{ secrets.CONFIG_DEV }}" > config.ts
+            ls
             cd ..
+            ls
 
             # Build the frontend
             npx expo export --platform web
