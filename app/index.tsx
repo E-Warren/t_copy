@@ -3,12 +3,10 @@ import { Link } from 'expo-router';
 import 'react-native-reanimated';
 import Config from './config';
 
-console.log("[index] config:", Config.BE_HOST);
-
 export default function Index() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Welcome to the home screen</Text>
+      <Text style={styles.text}>Welcome to the home screen - listening at ${Config.BE_HOST}</Text>
       <Link href={"/login"} style={styles.button}>
         Go to login screen
       </Link>
