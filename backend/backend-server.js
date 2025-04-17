@@ -33,6 +33,7 @@ const bodyParser = require("body-parser");
 //determine source of incoming request depending on localhost vs deployed env
 //use this to avoid mixed-content warning
 if(!process.env.IS_LOCALHOST){
+  console.log("NOT local host");
   const allowedOrigins = process.env.REACT_APP_ORIGINS?.split(",") || [];
 
   console.log(`Allowed origins are: ${allowedOrigins}`);
@@ -51,8 +52,10 @@ if(!process.env.IS_LOCALHOST){
       credentials: true,
     })
   );
-}/*
+}
 else{  //developing on localhost, indicated by env var
+  
+  console.log("LOCAL HOST");
   app.use(
     cors({
       origin: "http://localhost:8081",
