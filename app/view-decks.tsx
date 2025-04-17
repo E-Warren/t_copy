@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native
 import { Link, router } from "expo-router";
 import { WebSocketService } from "./webSocketService";
 import { useStudentStore } from "./useWebSocketStore";
-
+import Config from './config';
 
 interface Deck {
   id: string;
@@ -14,7 +14,7 @@ interface Deck {
 
 const deleteDeckFromBackend = async (deckId: string, token: string): Promise<boolean> => {
   try {
-        const response = await fetch('http://localhost:5000/view-decks', {
+        const response = await fetch(`${Config.BE_HOST}/view-decks`, {
           method: 'DELETE',
           headers: {
               'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ export default function DecksScreen() {
 
       //get decks from backend
       try {
-        const response = await fetch('http://localhost:5000/view-decks', {
+        const response = await fetch(`${Config.BE_HOST}/view-decks`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
