@@ -3,7 +3,7 @@ name: deploy - DEVELOPMENT SIDE FE
 on:
   push:
     branches:
-      - main  # or your deployment branch
+      - main
 
 jobs:
   deploy:
@@ -22,24 +22,27 @@ jobs:
         run: |
           rsync -az --delete -e "ssh -i ec2-dev-key.pem -o StrictHostKeyChecking=no" ./ "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_DEV }}:/home/${{ secrets.USERNAME }}/frontend-temp"
 
-      - name: Rebuild React on EC2
+      - name: SSH & Build on EC2
         run: |
-          ssh -i ec2-dev-key.pem -o StrictHostKeyChecking=no "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_DEV }}" << 'EOF'
+          ssh -i ec2-dev-key.pem -o StrictHostKeyChecking=no "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_DEV }}" << EOF
+            set -e
+
             cd ~/frontend-temp
-          
-          # install node
-          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-          \. "$HOME/.nvm/nvm.sh"
-          nvm install 22
-          npm install
 
-          # add config file
-          cd ~/app
-          echo "${{ secrets.CONFIG_DEV }}" > config.ts
-          cd ..
+            # Set up node & dependencies
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+            export NVM_DIR="\$HOME/.nvm"
+            source "\$NVM_DIR/nvm.sh"
+            nvm install 22
+            npm install
 
-          # build and move to served folder
-          npx expo export --platform web
-          sudo rm -rf /var/www/frontend/*
-          sudo cp -r dist/* /var/www/frontend/
+            # Write config.ts
+            echo "${{ secrets.CONFIG_DEV }}" > config.ts
+
+            # Build the frontend
+            npx expo export --platform web
+
+            # Deploy
+            sudo rm -rf /var/www/frontend/*
+            sudo cp -r dist/* /var/www/frontend/
           EOF
