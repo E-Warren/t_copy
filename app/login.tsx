@@ -217,7 +217,7 @@ const [password, onChangePassword] = useState('');
       <View style={styles.middle}>
         {/* The following is the welcome message on left */}
         <View style={styles.left}>
-          <Text style={styles.welcome}>Welcome!</Text>
+          <Text style={styles.welcome}>TEST!!</Text>
           <Text style={styles.prepare}>Prepare for learning that EVERYONE will enjoy.</Text>
         </View>
         {/* The following is the right side of the middle section */}
