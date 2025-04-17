@@ -11,6 +11,8 @@ interface Deck {
   questions: number;
 }
 
+console.log("config:", Config.BE_HOST);
+
 
 const deleteDeckFromBackend = async (deckId: string, token: string): Promise<boolean> => {
   try {
