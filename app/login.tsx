@@ -10,6 +10,8 @@ import * as WebBrowser from "expo-web-browser";
 //import { useNavigate } from 'react-router-dom'; //new
 import Config from './config';
 
+console.log("[login] config:", Config.BE_HOST);
+
 
 WebBrowser.maybeCompleteAuthSession();
 

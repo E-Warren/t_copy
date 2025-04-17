@@ -1,6 +1,9 @@
 import { Text, View, StyleSheet } from "react-native";
 import { Link } from 'expo-router';
 import 'react-native-reanimated';
+import Config from './config';
+
+console.log("[index] config:", Config.BE_HOST);
 
 export default function Index() {
   return (
