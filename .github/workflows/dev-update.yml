@@ -31,7 +31,10 @@ jobs:
 
             # write config.ts
             echo "WRITING CONFIG FILE"
+            pwd
             echo "${{ secrets.CONFIG_DEV }}" > config.ts
+            echo "CONFIG FILE WRITTEN. SEE:"
+            ls
 
             # set up node & dependencies
             echo "INSTALLING NODE"
@@ -43,8 +46,11 @@ jobs:
 
             # build the frontend
             echo "BUILDING APP"
+            pwd
             npx expo export --platform web
-
+            echo "APP HAS BEEN BUILT. SEE:"
+            ls
+            pwd
 
             # deploy
             echo "DEPLOYING TO /var/www/frontend"
