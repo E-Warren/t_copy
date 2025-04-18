@@ -22,16 +22,11 @@ jobs:
         run: |
           rsync -az --delete -e "ssh -i ec2-prod-key.pem -o StrictHostKeyChecking=no" ./ "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_PROD }}:/home/${{ secrets.USERNAME }}/frontend-temp"
 
-      - name: SSH & Build on EC2
+      - name: Rebuild React on EC2
         run: |
           ssh -i ec2-prod-key.pem -o StrictHostKeyChecking=no "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_PROD }}" << EOF
             set -e
-
             cd ~/frontend-temp
-
-            # write config.ts
-            echo "WRITING CONFIG FILE"
-            echo "${{ secrets.CONFIG_PROD }}" > config.ts
 
             # set up node & dependencies
             echo "INSTALLING NODE"
@@ -41,10 +36,22 @@ jobs:
             nvm install 22
             npm install
 
+            # write config.ts
+            echo "WRITING CONFIG FILE"
+            pwd
+            echo "${{ secrets.CONFIG_DEV }}" > app/config.ts
+            echo "CONFIG FILE WRITTEN. SEE ROOT:"
+            ls
+            echo "CONFIG FILE WRITTEN. SEE /app:"
+            ls app
+
             # build the frontend
             echo "BUILDING APP"
+            pwd
             npx expo export --platform web
-
+            echo "APP HAS BEEN BUILT. SEE:"
+            ls
+            pwd
 
             # deploy
             echo "DEPLOYING TO /var/www/frontend"
