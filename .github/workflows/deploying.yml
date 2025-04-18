@@ -39,7 +39,7 @@ jobs:
             # write config.ts
             echo "WRITING CONFIG FILE"
             pwd
-            echo "${{ secrets.CONFIG_DEV }}" > app/config.ts
+            echo "${{ secrets.CONFIG_PROD }}" > app/config.ts
             echo "CONFIG FILE WRITTEN. SEE ROOT:"
             ls
             echo "CONFIG FILE WRITTEN. SEE /app:"
