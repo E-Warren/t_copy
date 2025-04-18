@@ -22,19 +22,32 @@ jobs:
         run: |
           rsync -az --delete -e "ssh -i ec2-prod-key.pem -o StrictHostKeyChecking=no" ./ "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_PROD }}:/home/${{ secrets.USERNAME }}/frontend-temp"
 
-      - name: Rebuild React on EC2
+      - name: SSH & Build on EC2
         run: |
-          ssh -i ec2-prod-key.pem -o StrictHostKeyChecking=no "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_PROD }}" << 'EOF'
-            cd ~/frontend-temp
-            
-          # install node
-          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-          \. "$HOME/.nvm/nvm.sh"
-          nvm install 22
-          npm install
+          ssh -i ec2-dev-key.pem -o StrictHostKeyChecking=no "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_PROD }}" << EOF
+            set -e
 
-          # build and move to served folder
-          npx expo export --platform web
-          sudo rm -rf /var/www/frontend/*
-          sudo cp -r dist/* /var/www/frontend/
+            cd ~/frontend-temp
+
+            # write config.ts
+            echo "WRITING CONFIG FILE"
+            echo "${{ secrets.CONFIG_PROD }}" > config.ts
+
+            # set up node & dependencies
+            echo "INSTALLING NODE"
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+            export NVM_DIR="\$HOME/.nvm"
+            source "\$NVM_DIR/nvm.sh"
+            nvm install 22
+            npm install
+
+            # build the frontend
+            echo "BUILDING APP"
+            npx expo export --platform web
+
+
+            # deploy
+            echo "DEPLOYING TO /var/www/frontend"
+            sudo rm -rf /var/www/frontend/*
+            sudo cp -r dist/* /var/www/frontend/
           EOF
