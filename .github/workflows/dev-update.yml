@@ -22,7 +22,7 @@ jobs:
         run: |
           rsync -az --delete -e "ssh -i ec2-dev-key.pem -o StrictHostKeyChecking=no" ./ "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_DEV }}:/home/${{ secrets.USERNAME }}/frontend-temp"
 
-      - name: SSH & Build on EC2
+      - name: Rebuild React on EC2
         run: |
           ssh -i ec2-dev-key.pem -o StrictHostKeyChecking=no "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_DEV }}" << EOF
             set -e
