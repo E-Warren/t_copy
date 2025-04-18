@@ -28,24 +28,26 @@ jobs:
             set -e
 
             cd ~/frontend-temp
-            ls
 
-            # Set up node & dependencies
+            # write config.ts
+            echo "WRITING CONFIG FILE"
+            echo "${{ secrets.CONFIG_DEV }}" > config.ts
+
+            # set up node & dependencies
+            echo "INSTALLING NODE"
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
             export NVM_DIR="\$HOME/.nvm"
             source "\$NVM_DIR/nvm.sh"
             nvm install 22
             npm install
-            ls
 
-            # Write config.ts
-            echo "${{ secrets.CONFIG_DEV }}" > ~/app/config.ts
-            ls
-
-            # Build the frontend
+            # build the frontend
+            echo "BUILDING APP"
             npx expo export --platform web
 
-            # Deploy
+
+            # deploy
+            echo "DEPLOYING TO /var/www/frontend"
             sudo rm -rf /var/www/frontend/*
             sudo cp -r dist/* /var/www/frontend/
           EOF
