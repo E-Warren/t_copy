@@ -1,4 +1,4 @@
-name: deploy - DEVELOPMENT SIDE FE
+name: deploy - PRODUCTION SIDE FE
 
 on:
   push:
