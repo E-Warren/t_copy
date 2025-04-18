@@ -88,7 +88,7 @@ export default function studentClicksScreen() {
 
       <View style={styles.center}>
         <Text style={styles.countText}>
-            Click Count:
+            Click Count!!:
         </Text>
         <Text style={styles.clickText}> 
             {clickCount}
