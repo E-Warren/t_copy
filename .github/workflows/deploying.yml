@@ -24,7 +24,7 @@ jobs:
 
       - name: SSH & Build on EC2
         run: |
-          ssh -i ec2-dev-key.pem -o StrictHostKeyChecking=no "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_PROD }}" << EOF
+          ssh -i ec2-prod-key.pem -o StrictHostKeyChecking=no "${{ secrets.USERNAME }}@${{ secrets.HOST_DNS_PROD }}" << EOF
             set -e
 
             cd ~/frontend-temp
