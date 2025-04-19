@@ -11,7 +11,7 @@ const PlayScreen = () => {
       <Text style={styles.header}> ◇ Tappt</Text>
 
       {/* Main title */}
-      <Text style={styles.title}> How would you like to play?</Text>
+      <Text style={styles.title}> How would you like to play? - TEST TEST TEST</Text>
 
       {/* Button row */}
       <View style={styles.buttonRow}>
