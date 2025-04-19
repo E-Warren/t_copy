@@ -6,7 +6,7 @@ import Config from './config';
 export default function Index() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Welcome to the home screen - listening at ${Config.BE_HOST}</Text>
+      <Text style={styles.text}>Welcome to the home screen - listening at ${Config.BE_HOST}!!</Text>
       <Link href={"/login"} style={styles.button}>
         Go to login screen
       </Link>
