@@ -30,6 +30,7 @@ const cors = require("cors");
 //bring email from temp for google login
 const bodyParser = require("body-parser");
 
+
 //determine source of incoming request depending on localhost vs deployed env
 //use this to avoid mixed-content warning
 if(process.env.IS_LOCALHOST != 1){
@@ -43,6 +44,7 @@ if(process.env.IS_LOCALHOST != 1){
       origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
+          console.log(`listening at ${allowedOrigins[0]}`);
           console.log(`listening at ${allowedOrigins[1]}`);
         } else {
           callback(new Error("Not allowed by CORS"));
@@ -384,8 +386,6 @@ app.get("/view-decks", authenticateToken, async (req, res) => {
         //wait for query to finalize
         const decks = await pool.query(query, [req.userID.trim()])
 
-        console.log(decks)
-
         //send an 201 (OK) status as for success
         //return query in JSON format
         res.status(201).json(decks.rows)
@@ -415,8 +415,6 @@ app.get("/createdecks/:id", authenticateToken, async (req, res) => {
 
         //wait for query to finalize
         const decks = await pool.query(query, [id])
-
-        console.log(decks.rows)
 
         //if deck key doesn't exist -> only happens if you messed with the URL
         //return 404 error
@@ -572,6 +570,9 @@ app.get("/answerchoices/:deckID", async (req, res) => {
       console.log(error);
       res.status(500).json(error)
     }
+    pool.on("error", (err, client) => {
+      console.error("Unexpected error on idle PostgreSQL client", err);
+    });
 })
 
 
@@ -740,13 +741,88 @@ const resetGameState = async () => {
   gameState.hasStarted = false;
 }
 
+//for generating bonus probability
+const getProbabilityInt = async () => {
+  //generate a number between 1 and 100 inclusively
+  return Math.floor(Math.random() * 100) + 1;
+}
+
+const bonusDecider = async (name, qNum) => {
+  //finding the first place person -> first find max clicks
+  const topClicks = Math.max(...gameState.answers.map(max => max.studentClicks));
+
+  //comparing max clicks person to websocket person name
+  const firstPlace = gameState.answers.filter(person => person.studentClicks === topClicks && person.questionNum === qNum);
+
+  //ya bonus probability
+  const bonusProb = await getProbabilityInt();
+  let yourBonus = "";
+  console.log("bonus probability: ", bonusProb);
+
+  //doing bonus selection based on if person is first place or not
+  //if failed to find the first place
+  if (firstPlace.length === 0) {
+    yourBonus = "failed";
+  }
+  else if (name === firstPlace[0].studentName) { //if first place
+    //colors
+    console.log(name, "is first place with", topClicks, "clicks")
+    if (bonusProb <= 25) {
+      yourBonus = "10% Bonus";
+    }
+    else if (bonusProb > 25 && bonusProb <= 45) {
+      yourBonus = "15% Bonus";
+    }
+    else if (bonusProb > 45 && bonusProb <= 60) {
+      yourBonus = "20% Bonus";
+    }
+    else if (bonusProb > 60 && bonusProb <= 85) {
+      yourBonus = "1.5x Multiplier";
+    }
+    else if (bonusProb > 85) {
+      yourBonus = "2x Multiplier";
+    }
+    else {
+      yourBonus = "failed";
+    }
+  }
+  else {  //if not first place
+    if (bonusProb <= 20) {
+      yourBonus = "10% Bonus";
+    }
+    else if (bonusProb > 20 && bonusProb <= 35) {
+      yourBonus = "15% Bonus";
+    }
+    else if (bonusProb > 35 && bonusProb <= 45) {
+      yourBonus = "20% Bonus";
+    }
+    else if (bonusProb > 45 && bonusProb <= 65) {
+      yourBonus = "1.5x Multiplier";
+    }
+    else if (bonusProb > 65 && bonusProb <= 75) {
+      yourBonus = "2x Multiplier";
+    }
+    else if (bonusProb > 75 && bonusProb <= 90) {
+      yourBonus = "5% Steal";
+    }
+    else if (bonusProb > 90) {
+      yourBonus = "10% Steal";
+    }
+    else {
+      yourBonus = "failed";
+    }
+  }
+
+  return yourBonus;
+}
+
 const handleRemoveAll = async (studentName, type, leavingRoomCode)=> {
   console.log("Removing websocket connection");
 
   if (type === "student"){
     gameState.studentsInRoom = gameState.studentsInRoom.filter(name => name != studentName);
     websockets.forEach((websocket) => {
-      websocket.send(JSON.stringify({
+      websocket.socket.send(JSON.stringify({
         type: "studentLeft",
         studentName, //return the time left
       }))
@@ -770,7 +846,7 @@ const handleRemoveAll = async (studentName, type, leavingRoomCode)=> {
     resetGameState();
     //handle when teacher leaves
     websockets.forEach((websocket) => {
-      websocket.send(JSON.stringify({
+      websocket.socket.send(JSON.stringify({
         type: "hostLeft",
       }))
     })
@@ -790,7 +866,8 @@ const handleRemoveAll = async (studentName, type, leavingRoomCode)=> {
 let intervals;
 
 app.ws('/join', function(ws, req) {
-  websockets.push(ws); //adds connection to array
+  const socketConnection = {socket: ws};
+  websockets.push(socketConnection); //adds connection to array
   let studentName; 
   let type;
   let leavingRoomCode;
@@ -803,6 +880,7 @@ app.ws('/join', function(ws, req) {
         console.log("Going to join the room"); 
         const returnedName = await joinRoom(userMessage.data); //gets the randomly generated student name
         studentName = returnedName; //store student's name
+        socketConnection.userName = returnedName;
         type = "student";
         leavingRoomCode = userMessage.data.code;
         gameState.studentsInRoom.push(returnedName);
@@ -810,7 +888,7 @@ app.ws('/join', function(ws, req) {
         const listOfStudents = gameState.studentsInRoom; //stores the list of students in the game
 
           websockets.forEach((websocket) => { //will update the students in the game (sends to each websocket)
-            websocket.send(JSON.stringify({
+            websocket.socket.send(JSON.stringify({
               type: "studentsInGame",
               data: listOfStudents
             }));
@@ -843,7 +921,7 @@ app.ws('/join', function(ws, req) {
 
         //send that the game has started to all sockets
         websockets.forEach((websocket) => {
-          websocket.send(JSON.stringify({
+          websocket.socket.send(JSON.stringify({
             type: "gameHasBegun",
             data: true,
           }))
@@ -855,7 +933,7 @@ app.ws('/join', function(ws, req) {
       if (userMessage.type === "sendDeckID") {
         //send that the game has started to all sockets
         websockets.forEach((websocket) => {
-          websocket.send(JSON.stringify({
+          websocket.socket.send(JSON.stringify({
             type: "sentDeckID",
             data: gameState.deckID,
           }))
@@ -902,8 +980,7 @@ app.ws('/join', function(ws, req) {
           console.log("Going to stop the timer now!")
           clearInterval(intervals); //stop the interval cause all students answered
           websockets.forEach((websocket) => {
-            console.log("sent allstudentsansweredquestion");
-            websocket.send(JSON.stringify({
+            websocket.socket.send(JSON.stringify({
               type: "allStudentsAnsweredQuestion",
             }))
           });
@@ -924,7 +1001,6 @@ app.ws('/join', function(ws, req) {
             console.log("found student!");
             return true;
           }
-          console.log("did not find student...", "question:", element.questionNum, "student:", element.studentName, "correctness:", element.correctness)
           return false
         })
 
@@ -936,7 +1012,6 @@ app.ws('/join', function(ws, req) {
           determinator = "failed found";
         }
         else {
-          console.log("found ->", found, "; found[0].correctness ->", found[0].correctness);
           if (found[0].correctness === true){
             determinator = "correct";
           }
@@ -965,14 +1040,14 @@ app.ws('/join', function(ws, req) {
           if (timeLeft <= 0){ //means time is up!
             clearInterval(intervals); //stop the interval
             websockets.forEach((websocket) => {
-              websocket.send(JSON.stringify({
+              websocket.socket.send(JSON.stringify({
                 type: "timeUp", //send a message to everyone that time is up
                 data: true
               }))
             })
           } else { //else means there is still time left on the countdown
             websockets.forEach((websocket) => {
-              websocket.send(JSON.stringify({
+              websocket.socket.send(JSON.stringify({
                 type: "newCountdown",
                 timeLeft, //return the time left
               }))
@@ -980,19 +1055,37 @@ app.ws('/join', function(ws, req) {
           }
         }
       }
+
+      //send to next question
       if (userMessage.type === "sendToNextQuestion"){
         websockets.forEach((websocket) => {
-          websocket.send(JSON.stringify({
+          websocket.socket.send(JSON.stringify({
             type: "sendToNextAnswer"
           }))
         })
+      }
+
+      //bonus probability handler
+      //sends bonus after bonus is calculated
+      if (userMessage.type === "sendBonus") {
+        const yourBonus = await bonusDecider(userMessage.name, userMessage.qNum);
+
+        //colored yellow console.log
+        console.log(userMessage.name, "got bonus:", yourBonus);
+
+        //send bonus
+        ws.send(JSON.stringify({
+          type: "sentBonus",
+          bonus: yourBonus,
+        }))
+
       }
 
       //when reading is done -> help route to answerchoices because clicking done
       if (userMessage.type === "completedReading") {
         console.log("recieved message that reading was completed...");
         websockets.forEach((websocket) => {
-          websocket.send(JSON.stringify({
+          websocket.socket.send(JSON.stringify({
             type: "clickingOver"
           }))
         })
@@ -1000,11 +1093,18 @@ app.ws('/join', function(ws, req) {
 
       if (userMessage.type === "gameEnded"){
         handleRemoveAll(studentName, type, leavingRoomCode);
-        websockets.forEach((websocket) => {
-          websocket.send(JSON.stringify({
+        const endSocketGame = websockets.find(user => user.userName === userMessage.name);
+        if (endSocketGame){
+          endSocketGame.socket.send(JSON.stringify({
             type: "gameHasEnded"
           }))
-        })
+        }
+        // websockets.forEach((websocket) => {
+        //   websocket.socket.send(JSON.stringify({
+        //     type: "gameHasEnded",
+        //     name: userMessage.name
+        //   }))
+        // })
       }
 
     });
