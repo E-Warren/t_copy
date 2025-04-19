@@ -2,9 +2,6 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router"; // Import for navigation
 
-// ✅ Correct export for Expo Router (no white header)
-
-
 const PlayScreen = () => {
   const router = useRouter(); // Router for navigation
 
@@ -14,7 +11,7 @@ const PlayScreen = () => {
       <Text style={styles.header}> ◇ Tappt</Text>
 
       {/* Main title */}
-      <Text style={styles.title}> How would you like to play? </Text>
+      <Text style={styles.title}> How would you like to play? TEST TEST TEST </Text>
 
       {/* Button row */}
       <View style={styles.buttonRow}>
