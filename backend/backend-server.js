@@ -43,7 +43,6 @@ if(process.env.IS_LOCALHOST != 1){
       origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
-	  console.log(`listening at ${allowedOrigins[0]}`);
           console.log(`listening at ${allowedOrigins[1]}`);
         } else {
           callback(new Error("Not allowed by CORS"));
