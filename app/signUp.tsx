@@ -6,7 +6,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import {useRouter} from 'expo-router'
 import Config from './config';
 
-
 export default function LoginScreen() {
   const router = useRouter();
 
