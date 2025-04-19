@@ -88,7 +88,7 @@ export default function studentClicksScreen() {
 
       <View style={styles.center}>
         <Text style={styles.countText}>
-            Click Count!!:
+            Click Count:
         </Text>
         <Text style={styles.clickText}> 
             {clickCount}
@@ -109,6 +109,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 25,
     fontWeight: "300",
+    userSelect: 'none',
   },
   top: {
     flexDirection: "row",

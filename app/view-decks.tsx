@@ -5,13 +5,12 @@ import { WebSocketService } from "./webSocketService";
 import { useStudentStore } from "./useWebSocketStore";
 import Config from './config';
 
+
 interface Deck {
   id: string;
   title: string;
   questions: number;
 }
-
-console.log("config:", Config.BE_HOST);
 
 
 const deleteDeckFromBackend = async (deckId: string, token: string): Promise<boolean> => {

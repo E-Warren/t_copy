@@ -6,13 +6,28 @@ import { WebSocketService } from "./webSocketService";
 import { CommonActions } from "@react-navigation/native";
 
 const GameSummaryScreen = () => {
+  const playerName = useStudentStore((state) => state.name);
+  const gameEnded = useStudentStore((state) => state.gameEnded);
+
+  const reviewPress = () => {
+    router.replace("/review");
+  };
+
+
+  //to handle routing back to student login
+  useEffect(() => {
+    if (gameEnded) {
+      router.replace("/slogin");
+    }
+  }, [gameEnded]);
+
+  //will only say game ended if student chooses to join a new game
   const handlePress = () => {
-    useStudentStore.getState().resetGame();
     WebSocketService.sendMessage(JSON.stringify({
-      type: "gameEnded"
+      type: "gameEnded",
+      name: playerName,
     }));
-    window.location.href = "/slogin";
-  }
+  };
 
   return (
     <View style={styles.container}>
@@ -28,9 +43,9 @@ const GameSummaryScreen = () => {
         answered <Text style={styles.boldText}>12</Text> out of <Text style={styles.boldText}>13</Text> questions correctly.
       </Text>
       <View style={styles.buttonContainer}>
-        <Link href="/" style={styles.buttonYellow}>
+        <Pressable onPress={reviewPress} style={styles.buttonYellow}>
           <Text style={styles.buttonText}>See what I missed</Text>
-        </Link>
+        </Pressable>
         <Pressable onPress={handlePress} style={styles.buttonOrange}>
           <Text style={styles.buttonText}>Join a new game</Text>
         </Pressable>
