@@ -28,6 +28,21 @@ const CorrectScreen: React.FC<CorrectScreenProps> = ({ timer = 13, onBonusSelect
   const nextQ = useStudentStore(state => state.nextQuestion);
   const setNextQuestion = useStudentStore(state => state.setNextQuestion);
 
+  //bonus variable
+  //will indicate (in text) what kind of bonus it is
+  const bonus = useStudentStore(state => state.bonus);
+
+  //for handling the bonuses
+  useEffect(() => {
+    if (bonus === "") {
+      WebSocketService.sendMessage(JSON.stringify({
+        type: "sendBonus",
+        name: playername,
+        qNum: questionNumber,
+      }));
+    }
+  }, [bonus])
+
 
   const handleBonusSelect = (bonus: string) => {
     setSelectedBonus(bonus);
@@ -82,46 +97,29 @@ const CorrectScreen: React.FC<CorrectScreenProps> = ({ timer = 13, onBonusSelect
     //***temporary*** => substitute until we have teacher frontend routed to this point
     //setting timeout for 5 seconds so that student can see incorrect page
     useEffect(() => {
-        console.log("student info: ");
-        console.log("goToNextQuestion: ", goToNextQuestion);
-        console.log("hasAnswered: ", hasAns);
 
-        if (goToNextQuestion){
-          if ((questionNumber + 1) !== totalQuestions){
-            /*useStudentStore.setState({ 
-              hasAnswered: false, 
-              nextQuestion: false,
-              allStudentsAnswered: false,
-              currQuestionNum: questionNumber + 1
-            });*/
-
-            useStudentStore.setState({ hasAnswered: false});
+      //this function checks if the teacher has hit the continue (goToNextQuestion holds the next question number)
+        if (goToNextQuestion){ //checks if the next question is ready to be asked
+          if ((questionNumber + 1) !== totalQuestions){ //checks if teacher has reached the end of the deck
+            useStudentStore.setState({ currQuestionNum: questionNumber + 1}) //update the current question number (student side)
             useStudentStore.setState({ nextQuestion: false });
-
             useStudentStore.setState({ currQuestionNum: questionNumber + 1})
-            useStudentStore.setState({ allStudentsAnswered: false });
-            
+
+            //bonus resetting
+            useStudentStore.setState({ bonus: ""});
+
             console.log("go to next question is set to: ", useStudentStore.getState().nextQuestion);
             console.log("Everyone answered is now set to: ", useStudentStore.getState().allStudentsAnswered);
-            //useStudentStore.setState({ isTimeUp: false });
             console.log("resetting correctness... rerouting to /answerchoices");
-            setAnsCorrectness("");
-
             //go to student clicks now
             router.replace("/studentClicks");
-
           } else {
+            //if reached the end of the deck, send to endgame screen
+            console.log("Routing to end of the game through incorrect");
             router.replace("/endgame");
           }
         }
     }, [goToNextQuestion])
-
-    useEffect(() => {
-      useStudentStore.setState({ isTimeUp: false });
-      useStudentStore.setState({ currentTime: 30 });
-      console.log("The time is up boolean in zustand is now: ", useStudentStore.getState().isTimeUp);
-      useStudentStore.setState({ allStudentsAnswered: false });
-    }, [])
 
   return (
     <View style={styles.container}>
@@ -134,23 +132,11 @@ const CorrectScreen: React.FC<CorrectScreenProps> = ({ timer = 13, onBonusSelect
 
       <Text style={styles.correctText}>That's right!</Text>
 
-      {selectedBonus ? (
+      
         <Text style={styles.bonusMessage}>
-          {selectedBonus === "doublePoints"
-            ? "You chose x2 points per click!"
-            : "You froze all players next round!"}
+          You get {bonus}!!
         </Text>
-      ) : (
-        <>
-          <Text style={styles.chooseBonus}>Choose your bonus:</Text>
-          <TouchableOpacity style={styles.bonusButtonGreen} onPress={() => handleBonusSelect("doublePoints")}>
-            <Text style={styles.bonusText}>x2 points per click</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.bonusButtonPurple} onPress={() => handleBonusSelect("freezePlayers")}>
-            <Text style={styles.bonusText}>Freeze all the players next round</Text>
-          </TouchableOpacity>
-        </>
-      )}
+     
 
       <Text style={styles.timer}>{timer}</Text>
       <Text style={styles.questionCounter}>Question {questionNumber + 1} / {totalQuestions}</Text>
