@@ -35,6 +35,7 @@ jobs:
             npm install
 
             # Replace old code
+            npm i pm2
             pm2 stop backend-server || true
             rm -rf ~/backend
             mv ~/backend-temp ~/backend
