@@ -12,16 +12,13 @@ export default function studentClicksScreen() {
   const setIsClickable = useStudentStore(state => state.setIsClickable) //fxn to turn click listening on/off
   const clickIncrement = useStudentStore(state => state.incClickCount); //fxn for clickcount + inc value
 
-  const pointsPer = useStudentStore(state => state.pointsPerClick);         //for multiplier bonus
-  console.log("this student gets ", pointsPer, " points per click.");
-
   //for when reading is completed
   const completedReading = useStudentStore(state => state.completedReading);
   const setCompletedReading = useStudentStore(state => state.setCompletedReading);
 
   //testing
   const nextQuestion = useStudentStore(state => state.nextQuestion);
-  //console.log("next question =", nextQuestion);
+  console.log("next question =", nextQuestion);
 
   useEffect(() => {
     //time out for a little bit to ignore routing "click"
@@ -37,9 +34,9 @@ export default function studentClicksScreen() {
     useEffect(() => {
 
       if(isClickable){
-        //console.log("Is clickable!");
+        console.log("Is clickable!");
         const handleClick = () => {
-          clickIncrement(pointsPer);
+          clickIncrement(1);
         };
 
         document.addEventListener('click', handleClick);
@@ -58,7 +55,7 @@ export default function studentClicksScreen() {
     if(isClickable){
       const handleSpace = (event: KeyboardEvent) => {
         if (event.code === "Space") {
-          clickIncrement(pointsPer);
+          clickIncrement(1);
         }
       };
 
@@ -110,16 +107,16 @@ const styles = StyleSheet.create({
   },
   text: {
     color: "#fff",
-    fontSize: 40,
+    fontSize: 25,
+    fontWeight: "300",
     userSelect: 'none',
   },
   top: {
-    position: "absolute",
-    top: 10,
-    left: 20,
-    right: 20,
     flexDirection: "row",
     justifyContent: "space-between",
+    width: "100%",
+    paddingHorizontal: 50,
+    paddingTop: 30,
   },
   center: {
     flexDirection: "column",

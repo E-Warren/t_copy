@@ -15,7 +15,6 @@ import { useIsFocused } from "@react-navigation/native";
 import Config from './config';
 
 
-
 interface AnswerChoiceScreenProps {
   questionID?: number;
   question?: string;
@@ -63,52 +62,9 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
   const studentAnwered = useStudentStore(state => state.hasAnswered);
 
   //click count!!!!!!!!
-  let clickCount = useStudentStore(state => state.clickCount);
-
-  //bonus yus
-  const bonus = useStudentStore(state => state.bonus);
-
- 
-  //this is where i calculate your bonus for you
-  //only happens next round so hopefully you get the second to last question correct so you can use it
-  useEffect(() => {
-    if (bonus !== "") {
-      if (bonus === "10% Bonus") {
-        clickCount *= 1.10;
-      }
-      else if (bonus === "15% Bonus") {
-        clickCount *= 1.15;
-      }
-      else if (bonus === "20% Bonus") {
-        clickCount *= 1.20;
-      }
-      else {
-        console.log("invalid bonus:", bonus)
-      }
-      //round up bonus because we don't want fractional clickCount (I think it's funny)
-      clickCount = Math.round(clickCount);
-      console.log("here new clickcount after bonus -> ", clickCount);
-      useStudentStore.setState({ clickCount: clickCount })
-      useStudentStore.setState({ bonus: ""});
-    }
-  }, [clickCount, bonus])
-
-  useEffect(() => {
-    console.log("UPDATING STUDENT SCORE");
-    console.log("student with name ", playername, " has click count of ", clickCount);
+  const clickCount = useStudentStore(state => state.clickCount);
   
-    WebSocketService.sendMessage(JSON.stringify({
-      type: "scoreUpdate", 
-      data: {
-        playername: playername,
-        clickCount: clickCount,
-      }
-    }));
-  }, []); 
-
-
-  //room code
-  const roomCode = useStudentStore(state => state.roomCode);
+  //console.log("current question # ->", currQuestionNum);
 
   //for avoiding error about this file affecting the rendering ability of /teacherwaiting
   const [letsgo, setletsgo] = useState(false);
@@ -141,20 +97,13 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
 
   useEffect(() => {
     readStepRef.current = 0;
-  
-    return () => {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-        console.log("cleanup on currQuestionNum change or unmount");
-      }
-    };
   }, [currQuestionNum]);
 
   //if for some reason, nextQuestion is set to true prematurely, set it to false
   //should solve multiple games problem
   const nextQuestion = useStudentStore(state => state.nextQuestion);
     //testing
-    //console.log("next question =", nextQuestion);
+    console.log("next question =", nextQuestion);
 
   useEffect(() => {
     if (nextQuestion) {
@@ -178,9 +127,8 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
   }, [letsgo])
 
   //save student answers by sending them to backend!
-  const onAnswerPress = (answer: string, correct: boolean, questionID: number, currentQuestion: string, correctAnswer: string, location: number) => {
+  const onAnswerPress = (answer: string, correct: boolean, questionID: number, currentQuestion: string) => {
     console.log("saving answers to backend... ");
-    if (isFocused){
       WebSocketService.sendMessage(JSON.stringify({ 
         type: "studentAnswer", 
         name: playername, 
@@ -190,15 +138,11 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
         correctness: correct,
         questionNum: currQuestionNum,
         clickCount: clickCount, //click count now added yayayyay
-        location: location, //will be used to find which diamond the user pressed
-        correctAnswer: correctAnswer,
-        code: roomCode,
       }));
       console.log("click count -> ", clickCount)
       console.log("correctness ->", correct);
 
       setletsgo(true);
-    }
   }
 
   //for obtaining questions & answers for answer diamond display
@@ -310,12 +254,9 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
           answer: "No answer",
           questionID: questions[currQuestionNum]?.questionID?? -1,
           currentQuestion: questions[currQuestionNum]?.question?? "",
-          correctness: false, //changed this -> make sure this works
+          correctness: "incorrect",
           questionNum: currQuestionNum,
           clickCount: clickCount, //updated: click counts stored
-          location: -1,
-          correctAnswer: questions[currQuestionNum]?.choices?.find(c => c.correct)?.value?? "",
-          code: roomCode,
         }))
         console.log("Routing to the incorrect screen");
         router.replace('/incorrect'); //route student to "incorrect" screen
@@ -345,9 +286,6 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
             correctness: choice.correct,
             questionNum: currQuestionNum,
             clickCount: clickCount, //updated: click counts stored
-            location: 0,
-            correctAnswer: questions[currQuestionNum]?.choices?.find(c => c.correct)?.value?? "",
-            code: roomCode,
           }))
           setletsgo(true); //let students continue to waiting page
         }
@@ -370,9 +308,6 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
             correctness: choice.correct,
             questionNum: currQuestionNum,
             clickCount: clickCount, //updated: click counts stored
-            location: 3,
-            correctAnswer: questions[currQuestionNum]?.choices?.find(c => c.correct)?.value?? "",
-            code: roomCode,
           }))
           setletsgo(true);
         }
@@ -394,9 +329,6 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
             correctness: choice.correct,
             questionNum: currQuestionNum,
             clickCount: clickCount, //updated: click counts stored
-            location: 1,
-            correctAnswer: questions[currQuestionNum]?.choices?.find(c => c.correct)?.value?? "",
-            code: roomCode,
           }))
           setletsgo(true);
         }
@@ -418,9 +350,6 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
             correctness: choice.correct,
             questionNum: currQuestionNum,
             clickCount: clickCount, //updated: click counts stored
-            location: 2,
-            correctAnswer: questions[currQuestionNum]?.choices?.find(c => c.correct)?.value?? "",
-            code: roomCode,
           }))
           setletsgo(true);
         }
@@ -441,57 +370,42 @@ const AnswerChoiceScreen: React.FC<AnswerChoiceScreenProps> = () => {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.header}>Tappt</Text>
       <Text style={styles.username}>{playername}</Text>
 
-      <View style={styles.content}>
-        <View style={styles.leftPanel}>
-        <Text style={styles.header}> Tappt</Text>
-        <Text style={styles.timer}>{timer}</Text>
-          <Text style={styles.question}>
-            {questions[currQuestionNum]?.question || "questions are done. will need appropriate routing for this."}
-          </Text>
-        </View>
-        <View style={styles.rightPanel}>
-          <View style={styles.diamondLayout}>
-            {questions[currQuestionNum]?.choices?.map((choice, index) => {
-              const positionStyle =
-                index === 0
-                  ? styles.top
-                  : index === 1
-                  ? styles.left
-                  : index === 2
-                  ? styles.right
-                  : styles.bottom;
+      <Text style={styles.question}>{questions[currQuestionNum]?.question || "questions are done. will need appriopriate routing for this."}</Text>
 
-              const backgroundStyle =
-                styles[`choice${index}` as keyof typeof styles] as ViewStyle;
+      <View style={styles.diamondLayout}>
+        {questions[currQuestionNum]?.choices?.map((choice, index) => {
+          const positionStyle =
+            index === 0
+              ? styles.top
+              : index === 1
+              ? styles.left
+              : index === 2
+              ? styles.right
+              : styles.bottom;
 
-              return (
-                <TouchableOpacity
-                  key={index}
-                  style={[styles.choiceButton, backgroundStyle, positionStyle]}
-                  onPress={() =>
-                    onAnswerPress(
-                      choice.value,
-                      choice.correct,
-                      questions[currQuestionNum]?.questionID ?? -1,
-                      questions[currQuestionNum]?.question ?? "",
-                      questions[currQuestionNum]?.choices?.find(c => c.correct)?.value ?? "",
-                      index
-                    )
-                  }
-                >
-                  <View style={styles.choiceContent}>
-                    <Text style={styles.arrow}>{arrowIcons[index]}</Text>
-                    <Text style={styles.choiceText}>{choice.value}</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+          const backgroundStyle =
+            styles[`choice${index}` as keyof typeof styles] as ViewStyle;
+
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[styles.choiceButton, backgroundStyle, positionStyle]}
+              //questions[currQuestionNum]?.questionID?? -1 is the fallback number if, somehow, questionID is undefined :')
+              onPress={() => onAnswerPress(choice.value, choice.correct, questions[currQuestionNum]?.questionID?? -1, questions[currQuestionNum]?.question?? "")}
+            >
+              <View style={styles.choiceContent}>
+                <Text style={styles.arrow}>{arrowIcons[index]}</Text>
+                <Text style={styles.choiceText}>{choice.value}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
+      <Text style={styles.timer}>{timer}</Text>
       <Text style={styles.questionCounter}>
         Question {currQuestionNum + 1} / {totalQuestions}
       </Text>
@@ -503,35 +417,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#19d3a2",
-  },
-  content: {
-    flex: 1,
-    flexDirection: "row",
-    width: "100%",
-  },
-  leftPanel: {
-    flex: 1,
-    backgroundColor: "#14665c", // darker green
-    justifyContent: "center",
     alignItems: "center",
-  },
-  rightPanel: {
-    flex: 1,
     justifyContent: "center",
-    alignItems: "center",
+    padding: 20,
   },
   header: {
     position: "absolute",
     top: 10,
-    left: 9,
-    fontSize: 40,
+    left: 15,
+    fontSize: 30,
     color: "white",
   },
   username: {
     position: "absolute",
     top: 10,
     right: 15,
-    fontSize: 40,
+    fontSize: 30,
     color: "white",
   },
   question: {
@@ -539,39 +440,27 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "white",
     textAlign: "center",
-    flexShrink: 1,
+    marginBottom: 40,
   },
   diamondLayout: {
-    width: '75%',
-    aspectRatio: 1,
+    width: 300,
+    height: 300,
     position: "relative",
-    marginBottom: 0,
+    marginBottom: 40,
   },
   choiceButton: {
-    width: "37%",
-    height: "37%",
+    width: 110,
+    height: 110,
     borderRadius: 10,
     position: "absolute",
     justifyContent: "center",
     alignItems: "center",
     transform: [{ rotate: "45deg" }],
-  },
-  top: {
-    top: 0,
-    left: "28%",
-  },
-  left: {
-    top: "28%",
-    left: 0,
-  },
-  right: {
-    bottom: "35%",
-    right: "7%",
-    
-  },
-  bottom: {
-    bottom: "7%",
-    right: "35%",
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   choiceContent: {
     transform: [{ rotate: "-45deg" }],
@@ -587,10 +476,26 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
-  choice0: { backgroundColor: "#7340F2" },
-  choice1: { backgroundColor: "#C62F2F" },
-  choice2: { backgroundColor: "#105EDA" },
-  choice3: { backgroundColor: "#CD3280" },
+  top: {
+    top: 0,
+    left: 100,
+  },
+  left: {
+    top: 100,
+    left: 0,
+  },
+  right: {
+    top: 100,
+    left: 200,
+  },
+  bottom: {
+    top: 200,
+    left: 100,
+  },
+  choice0: { backgroundColor: "#8e44ad" },
+  choice1: { backgroundColor: "#f39c12" },
+  choice2: { backgroundColor: "#3498db" },
+  choice3: { backgroundColor: "#e74c3c" },
   timer: {
     position: "absolute",
     bottom: 20,
@@ -622,5 +527,3 @@ const styles = StyleSheet.create({
 });
 
 export default AnswerChoiceScreen;
-
-
