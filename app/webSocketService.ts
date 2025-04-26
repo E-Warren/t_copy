@@ -20,10 +20,12 @@ export const WebSocketService = {
             webSocket.onmessage = (ev) => {
                 const message = JSON.parse(ev.data);
                 if (message.type === "newStudentName"){ //used when the backend sends the student name
+                    console.log("The new student message was recieved!");
                     useStudentStore.setState({ name: message.data }); //updates the student's name
                     useStudentStore.setState({ roomCode: message.code }); //update's the students room code
                 }
                 else if (message.type === "studentsInGame"){ //backend sends a list of students in the game
+                    console.log("The students in game message was recieved!");
                     useStudentStore.setState({ students: message.data }); //updates the list of students in the game
                 }
                 else if (message.type === "generatedRoomCode"){ //used when the backend sends the room code to the teacher
@@ -49,6 +51,7 @@ export const WebSocketService = {
                 }
                 else if (message.type === "hostLeft"){
                     //remove all students from the game
+                    console.log("Recieved the host left message");
                     useStudentStore.getState().resetStudents();
                 } 
                 else if (message.type === "timeUp"){
@@ -64,6 +67,8 @@ export const WebSocketService = {
                         hasAnswered: false,
                         allStudentsAnswered: false,
                         ansCorrectness: "",
+                        answerDist: [],
+                        correctIndex: [],
                     }));
                 } 
                 else if (message.type === "gameHasEnded"){
@@ -77,17 +82,31 @@ export const WebSocketService = {
                         totalQuestions: 0,
                         currQuestionNum: 0,
                         clickCount: 0,
+                        pointsPerClick: 1,
                         students: [],
                         deckID: -1,
                         roomCode: "",
+                        answerDist: [],
+                        answerChoices: [],
+                        correctIndex: [],
                         bonus: "",
+                        completedReading: false,
                     }));
                 }
                 else if (message.type === "clickingOver") {
                     useStudentStore.setState({ completedReading: true});
+                } else if (message.type === "returnAnswers"){
+                    console.log("Recieved the answers: ", message.data);
+                    useStudentStore.setState({ 
+                        answerDist: message.data, 
+                    });
                 }
                 else if (message.type === "sentBonus") {
                     useStudentStore.setState({bonus: message.bonus})
+                }
+                else if (message.type === "updateAllScores") {
+                    const { playername, clickCount } = message.data;
+                    useStudentStore.getState().updateStudentScore(playername, clickCount);
                 }
                 
                 console.log(message);
