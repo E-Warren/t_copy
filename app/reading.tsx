@@ -27,7 +27,7 @@ async function playSound(e: any) {
   }, 1500);
 }
 
-const ReadingScreen: React.FC<ReadingScreenProps> = () => {
+const ReadingScreen: React.FC<ReadingScreenProps> = ({ playerCount = 17 }) => {
   const [isReadingComplete, setIsReadingComplete] = useState(false);
 
   const navigation = useNavigation(); // <- Hook into navigation
@@ -43,11 +43,6 @@ const ReadingScreen: React.FC<ReadingScreenProps> = () => {
   //testing
   const nextQ = useStudentStore(state => state.nextQuestion);
   const setNextQuestion = useStudentStore(state => state.setNextQuestion);
-
-
-  //player count for header
-  const players = useStudentStore((state) => state.students);
-  const totalPlayers = players.length;
 
   //------------ Setting up the questions -----------------
 const deckID = useStudentStore(state => state.deckID);
@@ -76,7 +71,7 @@ useEffect(() => {
         throw new Error("Failed to get deck.");
       }
   
-      const qArr: React.SetStateAction<ReadingScreenProps[]> = [];
+      const qArr = [];
       const qMap = new Map();
   
       //mapping each question, questionID, and answer to a map
@@ -139,39 +134,6 @@ useEffect(() => {
     }
   }, [questions])
 
-  //separate useEffect for ding sound for the void double ding.
-  useEffect(() => {
-    if (questions.length === 0 || isReadingComplete) return;
-    
-    const soundTimer = setTimeout(() => {
-      playSound(require("../assets/sound/ding-101492.mp3"));
-    }, 500);
-  
-    return () => clearTimeout(soundTimer);
-  }, [currQuestionNum]);  
-
-
-  useEffect(() => {
-    let aChoices: string[] = [];
-    let currQuestion = questions[currQuestionNum];
-    let correctOptions: number[] = [];
-    let index = 0;
-    if (currQuestion){
-      currQuestion.choices?.forEach(choice => {
-        console.log("the value of index is: ", index);
-        aChoices.push(choice.value);
-        if (choice.correct){
-          console.log("Setting the correctindex to: ", index);
-          correctOptions.push(index);
-        }
-        index++;
-      });
-      console.log("Going to set the correct array to: ", correctOptions );
-      useStudentStore.setState({ correctIndex: correctOptions});
-    }
-    useStudentStore.setState({ answerChoices: aChoices });
-  }, [questions])
-
 
   useEffect(() => {
     //avoid first question being reread
@@ -185,51 +147,45 @@ useEffect(() => {
     console.log("Total questions being asked is now: ", questions.length);
     navigation.setOptions({ headerShown: false }); // <- Hides back arrow + screen title
 
-    
+    const soundTimer = setTimeout(() => {
+      playSound(require("../assets/sound/question.mp3"));
+    }, 500);
+
+    //{questions[currQuestionNum]?.question || "questions are done. will need appriopriate routing for this."}
 
     const speechTimer = setTimeout(() => {
+      console.log("The current question number being asked is: ", currQuestionNum, " and question length is: ", questions.length);
+      console.log("The current question being asked is: ", questions[currQuestionNum]);
       const questionAsked = questions[currQuestionNum];
-      console.log("The current question number being asked is: ", currQuestionNum);
-      console.log("The current question being asked is: ", questionAsked);
-  
-      if (questionAsked) {
-        // Step 1: Read the main question first
+      if (questionAsked){
         Speech.speak(questionAsked.question || "No more questions!", {
           onDone: () => {
-            console.log("Question read complete. Now reading choices...");
-  
-            // Step 2: Sequentially read each choice using onDone chaining
-            let i = 0;
-  
-            const readNextChoice = () => {
-              if (i >= questionAsked.choices.length) {
-                console.log("All choices read.");
-                setIsReadingComplete(true); // <- Move to next screen only after all choices read
-                return;
-              }
-  
-              const choice = questionAsked.choices[i];
-              const choiceValue = choice.value || "No value available";
-              const toSpeak = `${choice.label}: ${choiceValue}`;
-  
-              console.log(`Reading choice ${i}: ${toSpeak}`);
-              Speech.speak(toSpeak, {
-                onDone: () => {
-                  i++;
-                  readNextChoice(); // recursively read next one
-                },
-              });
-            };
-  
-            readNextChoice(); // Start reading first choice
+            console.log("Speech finished");
+            questionAsked.choices.forEach((choice, index) => {
+              setTimeout(() => {
+                console.log(`${choice.label} value:`, choice.value);
+                const choiceValue = choice.value || "No value available";
+                Speech.speak(`${choice.label}: ${choiceValue}`, {
+                  onDone: () => {
+                    console.log(`Choice ${choice.label} read`);
+                  },
+                });
+              }, index * 2000); 
+            });
+            setTimeout(() => {
+              setIsReadingComplete(true);
+            }, questionAsked.choices.length * 2000 + 1000); 
           },
         });
-      } else {
+      } 
+      else {
         console.log("No question being asked");
       }
-    }, 2800);
-  
+    }, 2800)
+
+
     return () => {
+      clearTimeout(soundTimer);
       clearTimeout(speechTimer);
     };
   }, [isReadingComplete, questions, currQuestionNum]);
@@ -264,8 +220,8 @@ if (isReadingComplete) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Tappt</Text>
-      <Text style={styles.players}>{totalPlayers} players</Text>
+      <Text style={styles.header}>◇ Tappt</Text>
+      <Text style={styles.players}>{playerCount} players</Text>
       <Text style={styles.readingText}>Reading...</Text>
     </View>
   );
@@ -274,25 +230,23 @@ if (isReadingComplete) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#125E4B",
+    backgroundColor: "#1ed5c1",
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
-    paddingTop: 0,
-    
   },
   header: {
     position: "absolute",
-    top: 10,
-    left: 20,
-    fontSize: 40,
+    top: 15,
+    left: 15,
+    fontSize: 24,
     color: "white",
   },
   players: {
     position: "absolute",
-    top: 10,
-    right: 20,
-    fontSize: 40,
+    top: 15,
+    right: 15,
+    fontSize: 20,
     color: "white",
   },
   readingText: {

@@ -2,17 +2,16 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router"; // Import for navigation
 
-
 const PlayScreen = () => {
   const router = useRouter(); // Router for navigation
 
   return (
     <View style={styles.container}>
       {/* Top-left branding */}
-      <Text style={styles.header}>Tappt</Text>
+      <Text style={styles.header}> ◇ Tappt</Text>
 
       {/* Main title */}
-      <Text style={styles.title}> How would you like to play? </Text>
+      <Text style={styles.title}> How would you like to play? - TEST TEST TEST</Text>
 
       {/* Button row */}
       <View style={styles.buttonRow}>
@@ -42,14 +41,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   header: {
-    position: "absolute",
-    top: 10,
-    left: 20,
-    right: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    fontSize: 28,
     color: "white",
-    fontSize: 40,
+    fontWeight: "500",
+    marginBottom: 40,
   },
   title: {
     fontSize: 40,
@@ -73,7 +68,7 @@ const styles = StyleSheet.create({
   },
   hostButton: {
     flex: 1,
-    backgroundColor: "#F28C28",
+    backgroundColor: "#f4a623",
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",

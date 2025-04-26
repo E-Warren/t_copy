@@ -570,36 +570,11 @@ app.get("/answerchoices/:deckID", async (req, res) => {
       console.log(error);
       res.status(500).json(error)
     }
+    pool.on("error", (err, client) => {
+      console.error("Unexpected error on idle PostgreSQL client", err);
+    });
 })
 
-// -------------------- REVIEW ANSWERS WORK --------------------------- 
-app.get("/review/:code/:student", async (req, res) => {
-  try {
-    //obtain code and student name
-    const {code, student} = req.params;
-
-    const query = `
-    SELECT fld_code_game_pk, fld_student_ans, fld_correct_ans, fld_correctness, fld_question, fld_question_number
-    FROM room_students.tbl_code_game_ans
-    WHERE fld_code = $1 AND fld_student = $2;
-    `
-    //executing the query to obtain the review material
-    const reviewQuery = await pool.query(query, [code, student]);
-
-    //error handling if data exists or not
-    if (reviewQuery.rows.length < 1) {
-      console.log("review materials were not found.");
-      res.status(404).json({message: "Data Not Found."});
-    }
-    else {
-      console.log("review materials found!");
-      res.status(200).json(reviewQuery.rows);
-    }
-  }
-  catch (error) {
-    console.log("error for /review:", error);
-  }
-})
 
 
 
@@ -731,31 +706,39 @@ const joinRoom = async (data) => { //function to create the student name
   }
 };
  
-let games = [{
-  room: "Lobby",
-  gameState: {
-    studentsInRoom: [],
-    deckID: undefined,
-    currentQuestion: undefined,
-    answers: [],
-    hasStarted: false,
-  },
-  websockets: [],
-  intervals: null, 
-}]; //stores all of the games (created a lobby to handle websocket connections for students and teachers who are not in a game)
-//const websockets = []; //stores the websocket connections
-// const gameState = {
-//   studentsInRoom: [],
-//   deckID: undefined,
-//   currentQuestion: undefined,
-//   answers: [],
-//   hasStarted: false,
-// }
+const games = []; //stores all of the games
+const websockets = []; //stores the websocket connections
 
-const deleteGameState = async (room) => {
-  console.log("The games before deletion is: ", games);
-  games = games.filter(element => element.room !== room)
-  console.log("The games after deletion is: ", games);
+// const gameState = {
+//   studentsInRoom: ["yellow goose", "pink giraffe"],
+//   deckID: 12345,
+//   currentQuestion: 2,
+//   answers: [{
+//     studentName: "yellow goose",
+//     studentAnswer: "A",
+//     questionID: 1,
+//     clickCount: 100,
+//   }, {
+//     studentName: "pink giraffe",
+//     studentAnswer: "B",
+//     questionID: 2,
+//     clickCount: 150,
+//   }]
+// }
+const gameState = {
+  studentsInRoom: [],
+  deckID: undefined,
+  currentQuestion: undefined,
+  answers: [],
+  hasStarted: false,
+}
+
+const resetGameState = async () => {
+  gameState.answers = [];
+  gameState.deckID = undefined;
+  gameState.currentQuestion = undefined;
+  gameState.studentsInRoom = [];
+  gameState.hasStarted = false;
 }
 
 //for generating bonus probability
@@ -764,13 +747,13 @@ const getProbabilityInt = async () => {
   return Math.floor(Math.random() * 100) + 1;
 }
 
-const bonusDecider = async (name, qNum, gameRoom) => {
+const bonusDecider = async (name, qNum) => {
   //finding the first place person -> first find max clicks
-  const topClicks = Math.max(...gameRoom.gameState.answers.map(max => max.studentClicks));
+  const topClicks = Math.max(...gameState.answers.map(max => max.studentClicks));
+
   //comparing max clicks person to websocket person name
-  console.log("The current game state answer is: ", gameRoom.gameState.answers);
-  const firstPlace = gameRoom.gameState.answers.filter(person => person.studentClicks === topClicks && person.questionNum === qNum);
-  console.log("The first place array holds the following people: ", firstPlace);
+  const firstPlace = gameState.answers.filter(person => person.studentClicks === topClicks && person.questionNum === qNum);
+
   //ya bonus probability
   const bonusProb = await getProbabilityInt();
   let yourBonus = "";
@@ -782,8 +765,8 @@ const bonusDecider = async (name, qNum, gameRoom) => {
     yourBonus = "failed";
   }
   else if (name === firstPlace[0].studentName) { //if first place
+    //colors
     console.log(name, "is first place with", topClicks, "clicks")
-
     if (bonusProb <= 25) {
       yourBonus = "10% Bonus";
     }
@@ -793,31 +776,37 @@ const bonusDecider = async (name, qNum, gameRoom) => {
     else if (bonusProb > 45 && bonusProb <= 60) {
       yourBonus = "20% Bonus";
     }
-    else if (bonusProb > 60 && bonusProb <= 95) {
-      yourBonus = "+1 points per click";
+    else if (bonusProb > 60 && bonusProb <= 85) {
+      yourBonus = "1.5x Multiplier";
     }
-    else if (bonusProb > 95) {
-      yourBonus = "+2 points per click";
+    else if (bonusProb > 85) {
+      yourBonus = "2x Multiplier";
     }
     else {
       yourBonus = "failed";
     }
   }
   else {  //if not first place
-    if (bonusProb <= 15) {
+    if (bonusProb <= 20) {
       yourBonus = "10% Bonus";
     }
-    else if (bonusProb > 15 && bonusProb <= 35) {
+    else if (bonusProb > 20 && bonusProb <= 35) {
       yourBonus = "15% Bonus";
     }
-    else if (bonusProb > 35 && bonusProb <= 60) {
+    else if (bonusProb > 35 && bonusProb <= 45) {
       yourBonus = "20% Bonus";
     }
-    else if (bonusProb > 60 && bonusProb <= 90) {
-      yourBonus = "+1 points per click";
+    else if (bonusProb > 45 && bonusProb <= 65) {
+      yourBonus = "1.5x Multiplier";
+    }
+    else if (bonusProb > 65 && bonusProb <= 75) {
+      yourBonus = "2x Multiplier";
+    }
+    else if (bonusProb > 75 && bonusProb <= 90) {
+      yourBonus = "5% Steal";
     }
     else if (bonusProb > 90) {
-      yourBonus = "+2 points per click";
+      yourBonus = "10% Steal";
     }
     else {
       yourBonus = "failed";
@@ -827,42 +816,26 @@ const bonusDecider = async (name, qNum, gameRoom) => {
   return yourBonus;
 }
 
-const handleRemoveAll = async (studentName, type, leavingRoomCode,fromRoom)=> {
+const handleRemoveAll = async (studentName, type, leavingRoomCode)=> {
   console.log("Removing websocket connection");
 
   if (type === "student"){
-    fromRoom.gameState.studentsInRoom = fromRoom.gameState.studentsInRoom.filter(student => student.name !== studentName);
-
-
-    if (fromRoom.websockets.length === 0){
-      deleteGameState(leavingRoomCode);
-    }
-
-    fromRoom.websockets.forEach((websocket) => {
+    gameState.studentsInRoom = gameState.studentsInRoom.filter(name => name != studentName);
+    websockets.forEach((websocket) => {
       websocket.socket.send(JSON.stringify({
         type: "studentLeft",
         studentName, //return the time left
       }))
     })
 
-    //fromRoom.gameState.studentsInRoom = fromRoom.gameState.studentsInRoom.filter(student => student.name !== studentName);
-    console.log("Students when one person leaves", fromRoom.gameState.studentsInRoom);
+    gameState.studentsInRoom = gameState.studentsInRoom.filter(name => name !== studentName);
+    console.log("Students when one person leaves", gameState.studentsInRoom);
 
     try {
       const studentLeftQuery = `DELETE FROM room_students.tbl_room
       WHERE fld_room_code = $1 and type = 'student';`;
       const removeStudent = await pool.query(studentLeftQuery, [leavingRoomCode]);
-
-      //delete student answer data from database
-      const studentDeleteAns = `
-      DELETE FROM room_students.tbl_code_game_ans
-      WHERE fld_code = $1 AND fld_student = $2;
-      `;
-
-      await pool.query(studentDeleteAns, [leavingRoomCode, studentName]);
-
       console.log("Student successfully deleted from database");
-
     } catch (error) {
       console.log("There was an error when removing the student from database", error);
     }
@@ -870,13 +843,9 @@ const handleRemoveAll = async (studentName, type, leavingRoomCode,fromRoom)=> {
 
   } else {
     //deleted EVERYTHING if host leaves
-    if (fromRoom.websockets.length === 0){
-      deleteGameState(leavingRoomCode);
-    }
-
-
-
-    fromRoom.websockets.forEach((websocket) => {
+    resetGameState();
+    //handle when teacher leaves
+    websockets.forEach((websocket) => {
       websocket.socket.send(JSON.stringify({
         type: "hostLeft",
       }))
@@ -894,18 +863,14 @@ const handleRemoveAll = async (studentName, type, leavingRoomCode,fromRoom)=> {
 
 }
 
-//let intervals;
+let intervals;
 
 app.ws('/join', function(ws, req) {
   const socketConnection = {socket: ws};
-  const userID = crypto.randomUUID(); //randomly generate a unique identifier for the user socket connection (used to move websockets between rooms)
-  socketConnection.webID = userID;
-  const joinLobby = games.find(roomCode => roomCode.room === "Lobby");
-  joinLobby.websockets.push(socketConnection); //adds connection to array
+  websockets.push(socketConnection); //adds connection to array
   let studentName; 
   let type;
   let leavingRoomCode;
-  //put UUID here
     ws.on('message', async function(msg) { //get the message
       console.log(msg);
       const userMessage = JSON.parse(msg);
@@ -918,67 +883,26 @@ app.ws('/join', function(ws, req) {
         socketConnection.userName = returnedName;
         type = "student";
         leavingRoomCode = userMessage.data.code;
+        gameState.studentsInRoom.push(returnedName);
+        ws.send(JSON.stringify({type: "newStudentName", data: returnedName, code: userMessage.data.code})); //will store the message in zustand
+        const listOfStudents = gameState.studentsInRoom; //stores the list of students in the game
 
-        //move websocket from the lobby to the room:
-        const removeFromLobby = games.find(element => element.room === "Lobby"); //find the lobby game
-        const WebsocketToRemove = removeFromLobby.websockets.find(element => element.webID === userID); //find the websocket connection to remove
-        removeFromLobby.websockets = removeFromLobby.websockets.filter(element => element.webID !== userID); //remove the websocket from the lobby
-        console.log("Websockets in the lobby: ", removeFromLobby.websockets);
-        const joinRoomCode = games.find((element) => element.room === userMessage.data.code); //find the room to add the student to
-        if (joinRoomCode){
-          joinRoomCode.websockets.push(socketConnection); //add the websocket connection to the new game
-  
-          console.log("The websockets in the current room are: ", joinRoomCode.websockets);
-
-          console.log("Going to send a message to everyone that the student joined the room yay!");
-          joinRoomCode.gameState.studentsInRoom.push({ name: returnedName, clickCount: 0 });
-          ws.send(JSON.stringify({type: "newStudentName", data: returnedName, code: userMessage.data.code})); //will store the message in zustand
-          const listOfStudents = joinRoomCode.gameState.studentsInRoom; //stores the list of students in the game
-  
-            joinRoomCode.websockets.forEach((websocket) => { //will update the students in the game (sends to each websocket)
-              websocket.socket.send(JSON.stringify({
-                type: "studentsInGame",
-                data: listOfStudents
-              }));
-            })
-        } else {
-          console.log("Could not find the room to join in join message");
-        }
+          websockets.forEach((websocket) => { //will update the students in the game (sends to each websocket)
+            websocket.socket.send(JSON.stringify({
+              type: "studentsInGame",
+              data: listOfStudents
+            }));
+          })
       }
 
       if (userMessage.type === "host"){ //called when the teacher hits host deck
         type = "teacher";
-        socketConnection.userName = "teacher";
         const returnedRoom = await hostRoom(); //will randomly generate a room code
         leavingRoomCode = returnedRoom;
         console.log("Teacher connected");
 
-        //remove teacher websocket from the lobby and add to the new game"
-        const removeTeachFromLobby = games.find(element => element.room === "Lobby");
-        const teachWebsocketInLobby = removeTeachFromLobby.websockets.find(element => element.webID === userID);
-        removeTeachFromLobby.websockets = removeTeachFromLobby.websockets.filter(element => element.webID !== userID);
-        console.log("Websockets in the lobby: ", removeTeachFromLobby.websockets);
-        games.push({
-          room: returnedRoom,
-          gameState: {
-            studentsInRoom: [],
-            deckID: undefined,
-            currentQuestion: undefined,
-            answers: [],
-            hasStarted: false,
-          },
-          websockets: [],
-          intervals: null,
-        });
-        const createNewRoom = games.find(element => element.room === returnedRoom);
-      
-        if (createNewRoom){
-          createNewRoom.websockets.push(socketConnection);
-          createNewRoom.gameState.deckID = userMessage.deck; // edit: now saves deckID from frontend! yay!
-          console.log("hosted deckID:", createNewRoom.gameState.deckID)
-        } else {
-          console.log("Could not find the correct room to host");
-        }
+        gameState.deckID = userMessage.deck; // edit: now saves deckID from frontend! yay!
+        console.log("hosted deckID:", gameState.deckID)
         
         console.log("Returning the room code: ", returnedRoom);
 
@@ -992,12 +916,11 @@ app.ws('/join', function(ws, req) {
       //if teacher has begun the game
       if (userMessage.type === "gameStarted") {
         console.log("Teacher has started the game!")
-        const gameRoom = games.find(element => element.room === leavingRoomCode);
 
-        gameRoom.gameState.hasStarted = true
+        gameState.hasStarted = true
 
         //send that the game has started to all sockets
-        gameRoom.websockets.forEach((websocket) => {
+        websockets.forEach((websocket) => {
           websocket.socket.send(JSON.stringify({
             type: "gameHasBegun",
             data: true,
@@ -1008,12 +931,11 @@ app.ws('/join', function(ws, req) {
 
       //sends deckID to every socket so that students can load questions/answers on their end
       if (userMessage.type === "sendDeckID") {
-        const gameRoom = games.find(element => element.room === leavingRoomCode);
         //send that the game has started to all sockets
-        gameRoom.websockets.forEach((websocket) => {
+        websockets.forEach((websocket) => {
           websocket.socket.send(JSON.stringify({
             type: "sentDeckID",
-            data: gameRoom.gameState.deckID,
+            data: gameState.deckID,
           }))
         });
       }
@@ -1027,62 +949,37 @@ app.ws('/join', function(ws, req) {
         const currentQuestion = userMessage.currentQuestion;
         const correctness = userMessage.correctness;
         const questionNum = userMessage.questionNum;
-        const location = userMessage.location;
-        const correctAnswer = userMessage.correctAnswer;
-        const code = userMessage.code;
 
-        const gameRoom = games.find(element => element.room === leavingRoomCode);
+        gameState.currentQuestion = currentQuestion;
+        console.log("current question: ", gameState.currentQuestion);
 
-        if (gameRoom){
-          gameRoom.gameState.currentQuestion = currentQuestion;
-          gameRoom.gameState.questionID = questionID;
-          console.log("current question: ", gameRoom.gameState.currentQuestion);
-  
-          gameRoom.gameState.answers.push({
-            studentName,
-            studentAnswer,
-            questionID,
-            studentClicks,
-            correctness,
-            questionNum,
-            correctAnswer,
-            currentQuestion,  //adding this here so backend can send allStudentsAnsweredQuestion when all students answered -> should we change this? its redundant
-            location,
-          });
-        } else {
-          console.log("Could not find the room to add the answers to");
-        }
+        gameState.answers.push({
+          studentName,
+          studentAnswer,
+          questionID,
+          studentClicks,
+          correctness,
+          questionNum,
+          currentQuestion,  //adding this here so backend can send allStudentsAnsweredQuestion when all students answered -> should we change this? its redundant
+        });
 
-        //for database query so that it can hopefully run and catch errors successfully
-        try {
-        //making database query for all stuff here
-        const query = `
-        INSERT INTO room_students.tbl_code_game_ans(fld_code, fld_student, fld_student_ans, fld_correct_ans, fld_correctness, fld_question, fld_student_clicks, fld_question_number)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`
-
-        const ansQuery = await pool.query(query, [code, studentName, studentAnswer, correctAnswer, correctness, currentQuestion, studentClicks, questionNum]);
-        }
-        catch(error) {
-          console.log("error:", error);
-        }
-
-        console.log("student sent in the following game data: ", gameRoom.gameState.answers[gameRoom.gameState.answers.length - 1]);
+        console.log("student sent in the following game data: ", gameState.answers[gameState.answers.length - 1]);
 
         //UPDATE: it actually works! but is a little finicky (it keeps previous games' students sometimes)
         //To find if all students have answered:
-        let numStudentsWhoAnswered = gameRoom.gameState.answers.filter(function (element) {
+        let numStudentsWhoAnswered = gameState.answers.filter(function (element) {
           //return the students who have answered the current question
-          return (element.currentQuestion === gameRoom.gameState.currentQuestion && element.questionID === gameRoom.gameState.questionID);
+          return element.currentQuestion === gameState.currentQuestion;
         })
 
         console.log("students who have answered: ", numStudentsWhoAnswered.length)
-        console.log("number of students in the room: ", gameRoom.gameState.studentsInRoom.length)
-        console.log("students in the room: ", gameRoom.gameState.studentsInRoom)
+        console.log("number of students in the room: ", gameState.studentsInRoom.length)
+        console.log("students in the room: ", gameState.studentsInRoom)
 
-        if (gameRoom.gameState.studentsInRoom.length == numStudentsWhoAnswered.length){
+        if (gameState.studentsInRoom.length == numStudentsWhoAnswered.length){
           console.log("Going to stop the timer now!")
-          clearInterval(gameRoom.intervals); //stop the interval cause all students answered
-          gameRoom.websockets.forEach((websocket) => {
+          clearInterval(intervals); //stop the interval cause all students answered
+          websockets.forEach((websocket) => {
             websocket.socket.send(JSON.stringify({
               type: "allStudentsAnsweredQuestion",
             }))
@@ -1098,9 +995,7 @@ app.ws('/join', function(ws, req) {
 
         //finding student's answer correctness (if correct or not)
         //i know this code is yucky looking
-        const gameRoom = games.find(element => element.room === leavingRoomCode);
-
-        let found = gameRoom.gameState.answers.filter(function (element) {
+        let found = gameState.answers.filter(function (element) {
           if (element.studentName === name && element.questionNum === currQNum) {
             console.log("for question:", currQNum, "student", name, " answer correctness is", element.correctness);
             console.log("found student!");
@@ -1134,25 +1029,24 @@ app.ws('/join', function(ws, req) {
         ws.send(JSON.stringify({
           type: "sentAnswerCorrectness",
           data: determinator,
-        })) 
+        }))
       }
 
       if (userMessage.type === "countdownStarted"){ //sent when the timer starts on frontend
         let timeLeft = 30;
-        const gameRoom = games.find(element => element.room === leavingRoomCode);
-        gameRoom.intervals = setInterval(decrementSecond, 1000);
+        intervals = setInterval(decrementSecond, 1000);
         function decrementSecond () {
           timeLeft -= 1; //decrement the time
           if (timeLeft <= 0){ //means time is up!
-            clearInterval(gameRoom.intervals); //stop the interval
-            gameRoom.websockets.forEach((websocket) => {
+            clearInterval(intervals); //stop the interval
+            websockets.forEach((websocket) => {
               websocket.socket.send(JSON.stringify({
                 type: "timeUp", //send a message to everyone that time is up
                 data: true
               }))
             })
           } else { //else means there is still time left on the countdown
-            gameRoom.websockets.forEach((websocket) => {
+            websockets.forEach((websocket) => {
               websocket.socket.send(JSON.stringify({
                 type: "newCountdown",
                 timeLeft, //return the time left
@@ -1164,8 +1058,7 @@ app.ws('/join', function(ws, req) {
 
       //send to next question
       if (userMessage.type === "sendToNextQuestion"){
-        const gameRoom = games.find(element => element.room === leavingRoomCode);
-        gameRoom.websockets.forEach((websocket) => {
+        websockets.forEach((websocket) => {
           websocket.socket.send(JSON.stringify({
             type: "sendToNextAnswer"
           }))
@@ -1175,10 +1068,7 @@ app.ws('/join', function(ws, req) {
       //bonus probability handler
       //sends bonus after bonus is calculated
       if (userMessage.type === "sendBonus") {
-        const gameRoom = games.find(element => element.room === leavingRoomCode);
-        console.log("The game room state before sending to bonus is: ", gameRoom);
-
-        const yourBonus = await bonusDecider(userMessage.name, userMessage.qNum, gameRoom);
+        const yourBonus = await bonusDecider(userMessage.name, userMessage.qNum);
 
         //colored yellow console.log
         console.log(userMessage.name, "got bonus:", yourBonus);
@@ -1194,8 +1084,7 @@ app.ws('/join', function(ws, req) {
       //when reading is done -> help route to answerchoices because clicking done
       if (userMessage.type === "completedReading") {
         console.log("recieved message that reading was completed...");
-        const gameRoom = games.find(element => element.room === leavingRoomCode);
-        gameRoom.websockets.forEach((websocket) => {
+        websockets.forEach((websocket) => {
           websocket.socket.send(JSON.stringify({
             type: "clickingOver"
           }))
@@ -1203,102 +1092,25 @@ app.ws('/join', function(ws, req) {
       }
 
       if (userMessage.type === "gameEnded"){
-        const gameRoom = games.find(element => element.room === leavingRoomCode);
-        
-        const endSocketGame = gameRoom.websockets.find(user => user.userName === userMessage.name);
-        if (endSocketGame) {
+        handleRemoveAll(studentName, type, leavingRoomCode);
+        const endSocketGame = websockets.find(user => user.userName === userMessage.name);
+        if (endSocketGame){
           endSocketGame.socket.send(JSON.stringify({
             type: "gameHasEnded"
           }))
         }
-        //move websocket connection back to the lobby:
-        const lobbyRoom = games.find(element => element.room === "Lobby"); //find the lobby game
-        const findWebsocket = gameRoom.websockets.find(element => element.webID === userID); // find the websocket connection to move to lobby
-        lobbyRoom.websockets.push(socketConnection); //add websocket back to the lobby
-        gameRoom.websockets = gameRoom.websockets.filter(element => element.webID !== userID) //remove the websocket connection from the previous game
-
-        
-        handleRemoveAll(studentName, type, leavingRoomCode, gameRoom);
-        leavingRoomCode = "Lobby"; //reset the roomCode
+        // websockets.forEach((websocket) => {
+        //   websocket.socket.send(JSON.stringify({
+        //     type: "gameHasEnded",
+        //     name: userMessage.name
+        //   }))
+        // })
       }
 
-      if (userMessage.type === "sendAnswerDist"){
-        let sendAnswers = [];
-        const gameRoom = games.find(element => element.room === leavingRoomCode);
-
-        let currentAnswers = gameRoom.gameState.answers.filter(function (element) {
-          //return the students who have answered the current question
-          return (element.currentQuestion === gameRoom.gameState.currentQuestion && element.questionID === gameRoom.gameState.questionID);
-        })
-
-        console.log("Going to check the following answers: ", currentAnswers);
-
-        let top = 0;
-        let left = 0;
-        let right = 0;
-        let bottom = 0;
-        let noAnswer = 0;
-        for (let i = 0; i < currentAnswers.length; i++){ //add something for the question num
-          let checkAnswer = currentAnswers[i].location;
-
-          if (checkAnswer === -1){ //that person did not answer so does not effect distribution
-            console.log("No answer recorded for data distribution");
-            noAnswer++;
-          } else if (checkAnswer === 0){ //means student picked the top choice
-            top++;
-          } else if (checkAnswer === 1){ //means student picked left
-            left++;
-          } else if (checkAnswer === 2){
-            right++;
-          } else {
-            bottom++;
-          }
-        }
-        if (noAnswer === currentAnswers.length){
-          console.log("There was no answer so sending distribution of 0");
-          sendAnswers.push(0,0,0,0);
-        } else {
-          sendAnswers.push(top, left, right, bottom);
-        }
-        const findTeacher = gameRoom.websockets.filter(teach => teach.userName === "teacher");
-        console.log("The teachers who will recieve the message are: ", findTeacher);
-        if (findTeacher){
-          console.log("Going to return the following array of numbers: ", sendAnswers);
-          findTeacher.forEach((websocket) => {
-            websocket.socket.send(JSON.stringify({
-              type: "returnAnswers",
-              data: sendAnswers,
-            }))
-          })
-        }
-      }
-
-      if (userMessage.type === "scoreUpdate") {
-        const { playername, clickCount } = userMessage.data;
-        const gameRoom = games.find(element => element.room === leavingRoomCode);
-        // Send update to all connected clients
-        gameRoom.websockets.forEach((websocket) => {
-          websocket.socket.send(JSON.stringify({
-            type: "updateAllScores", // this is what frontend clients will receive
-            data: {
-              playername,
-              clickCount
-            }
-          }));
-        });
-      }
-      
     });
 
     ws.on('close', async (code, reason) => {
-      const leaveRoom = games.find(element => element.room === leavingRoomCode);
-      if (leavingRoomCode !== "Lobby"){
-        handleRemoveAll(studentName, type, leavingRoomCode, leaveRoom);
-      } else {
-        const lobbyRoom = games.find(element => element.room === "Lobby");
-        lobbyRoom.websockets = lobbyRoom.websockets.filter(element => element.webID === userID);
-      }
-      //leavingRoomCode = "Lobby";
+      handleRemoveAll(studentName, type, leavingRoomCode);
       ws.close();
     });
   });
