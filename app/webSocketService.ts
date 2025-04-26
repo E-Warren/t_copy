@@ -64,6 +64,8 @@ export const WebSocketService = {
                         hasAnswered: false,
                         allStudentsAnswered: false,
                         ansCorrectness: "",
+                        answerDist: [],
+                        correctIndex: [],
                     }));
                 } 
                 else if (message.type === "gameHasEnded"){
@@ -77,17 +79,31 @@ export const WebSocketService = {
                         totalQuestions: 0,
                         currQuestionNum: 0,
                         clickCount: 0,
+                        pointsPerClick: 1,
                         students: [],
                         deckID: -1,
                         roomCode: "",
+                        answerDist: [],
+                        answerChoices: [],
+                        correctIndex: [],
                         bonus: "",
+                        completedReading: false,
                     }));
                 }
                 else if (message.type === "clickingOver") {
                     useStudentStore.setState({ completedReading: true});
+                } else if (message.type === "returnAnswers"){
+                    console.log("Recieved the answers: ", message.data);
+                    useStudentStore.setState({ 
+                        answerDist: message.data, 
+                    });
                 }
                 else if (message.type === "sentBonus") {
                     useStudentStore.setState({bonus: message.bonus})
+                }
+                else if (message.type === "updateAllScores") {
+                    const { playername, clickCount } = message.data;
+                    useStudentStore.getState().updateStudentScore(playername, clickCount);
                 }
                 
                 console.log(message);

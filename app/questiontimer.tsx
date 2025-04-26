@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useStudentStore } from "./useWebSocketStore";
 import { router } from "expo-router";
 import { useNavigation } from "@react-navigation/native"; // or "expo-router" if using Expo Router
 import { WebSocketService } from "./webSocketService";
 import Config from './config';
+import timerSound from "../assets/sound/timer-with-chime-101253.mp3";
+import { Audio } from "expo-av"; 
 
 interface QuestionWithTimerScreenProps {
   question?: string;
@@ -21,10 +23,16 @@ const QuestionWithTimerScreen: React.FC<QuestionWithTimerScreenProps> = ({
 
   useEffect(() => {
     //if the timer is up or all the students have answered, route teacher to roundend screen
-    if (timerIsUp || haveAllStudentsAnswered){
+    if ((timerIsUp || haveAllStudentsAnswered)){
       router.replace('/roundend');
+
     }
   }, [timerIsUp, haveAllStudentsAnswered])
+
+
+  //player count for header
+  const players = useStudentStore((state) => state.students);
+  const totalPlayers = players.length;
 
 const [questions, setQuestions] = useState<QuestionWithTimerScreenProps[]>([]);
 const deckID = useStudentStore(state => state.deckID);
@@ -101,12 +109,35 @@ useEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, []);
 
+  //sound
+  useEffect(() => {
+    let sound: Audio.Sound | null = null;
+    const timer = setTimeout(async () => {
+      try {
+        const { sound: loadedSound } = await Audio.Sound.createAsync(timerSound);
+        sound = loadedSound;
+        await sound.playAsync();
+        console.log("Music started after 18 seconds");
+      } catch (error) {
+        console.log("Failed to play sound:", error);
+      }
+    }, 17800);
+  
+    return () => {
+      clearTimeout(timer);
+      if (sound) {
+        sound.unloadAsync();
+        console.log("Music stopped because screen unmounted");
+      }
+    };
+  }, []);
+
 
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>◇ Tappt</Text>
-      <Text style={styles.players}>{playerCount} players</Text>
+      <Text style={styles.header}>Tappt</Text>
+      <Text style={styles.players}>{totalPlayers} players</Text>
 
       <Text style={styles.timer}>{timer}</Text>
       <Text style={styles.question}>{questions[currQuestionNum]?.question || "questions are done. will need appriopriate routing for this."}</Text>
@@ -124,16 +155,16 @@ const styles = StyleSheet.create({
   },
   header: {
     position: "absolute",
-    top: 15,
-    left: 15,
-    fontSize: 24,
+    top: 10,
+    left: 20,
+    fontSize: 40,
     color: "white",
   },
   players: {
     position: "absolute",
-    top: 15,
-    right: 15,
-    fontSize: 18,
+    top: 10,
+    right: 20,
+    fontSize: 40,
     color: "white",
   },
   timer: {
