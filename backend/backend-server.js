@@ -570,11 +570,36 @@ app.get("/answerchoices/:deckID", async (req, res) => {
       console.log(error);
       res.status(500).json(error)
     }
-    pool.on("error", (err, client) => {
-      console.error("Unexpected error on idle PostgreSQL client", err);
-    });
 })
 
+// -------------------- REVIEW ANSWERS WORK --------------------------- 
+app.get("/review/:code/:student", async (req, res) => {
+  try {
+    //obtain code and student name
+    const {code, student} = req.params;
+
+    const query = `
+    SELECT fld_code_game_pk, fld_student_ans, fld_correct_ans, fld_correctness, fld_question, fld_question_number
+    FROM room_students.tbl_code_game_ans
+    WHERE fld_code = $1 AND fld_student = $2;
+    `
+    //executing the query to obtain the review material
+    const reviewQuery = await pool.query(query, [code, student]);
+
+    //error handling if data exists or not
+    if (reviewQuery.rows.length < 1) {
+      console.log("review materials were not found.");
+      res.status(404).json({message: "Data Not Found."});
+    }
+    else {
+      console.log("review materials found!");
+      res.status(200).json(reviewQuery.rows);
+    }
+  }
+  catch (error) {
+    console.log("error for /review:", error);
+  }
+})
 
 
 
@@ -765,8 +790,8 @@ const bonusDecider = async (name, qNum) => {
     yourBonus = "failed";
   }
   else if (name === firstPlace[0].studentName) { //if first place
-    //colors
     console.log(name, "is first place with", topClicks, "clicks")
+
     if (bonusProb <= 25) {
       yourBonus = "10% Bonus";
     }
@@ -776,37 +801,31 @@ const bonusDecider = async (name, qNum) => {
     else if (bonusProb > 45 && bonusProb <= 60) {
       yourBonus = "20% Bonus";
     }
-    else if (bonusProb > 60 && bonusProb <= 85) {
-      yourBonus = "1.5x Multiplier";
+    else if (bonusProb > 60 && bonusProb <= 95) {
+      yourBonus = "+1 points per click";
     }
-    else if (bonusProb > 85) {
-      yourBonus = "2x Multiplier";
+    else if (bonusProb > 95) {
+      yourBonus = "+2 points per click";
     }
     else {
       yourBonus = "failed";
     }
   }
   else {  //if not first place
-    if (bonusProb <= 20) {
+    if (bonusProb <= 15) {
       yourBonus = "10% Bonus";
     }
-    else if (bonusProb > 20 && bonusProb <= 35) {
+    else if (bonusProb > 15 && bonusProb <= 35) {
       yourBonus = "15% Bonus";
     }
-    else if (bonusProb > 35 && bonusProb <= 45) {
+    else if (bonusProb > 35 && bonusProb <= 60) {
       yourBonus = "20% Bonus";
     }
-    else if (bonusProb > 45 && bonusProb <= 65) {
-      yourBonus = "1.5x Multiplier";
-    }
-    else if (bonusProb > 65 && bonusProb <= 75) {
-      yourBonus = "2x Multiplier";
-    }
-    else if (bonusProb > 75 && bonusProb <= 90) {
-      yourBonus = "5% Steal";
+    else if (bonusProb > 60 && bonusProb <= 90) {
+      yourBonus = "+1 points per click";
     }
     else if (bonusProb > 90) {
-      yourBonus = "10% Steal";
+      yourBonus = "+2 points per click";
     }
     else {
       yourBonus = "failed";
@@ -820,7 +839,7 @@ const handleRemoveAll = async (studentName, type, leavingRoomCode)=> {
   console.log("Removing websocket connection");
 
   if (type === "student"){
-    gameState.studentsInRoom = gameState.studentsInRoom.filter(name => name != studentName);
+    gameState.studentsInRoom = gameState.studentsInRoom.filter(student => student.name !== studentName);
     websockets.forEach((websocket) => {
       websocket.socket.send(JSON.stringify({
         type: "studentLeft",
@@ -828,14 +847,24 @@ const handleRemoveAll = async (studentName, type, leavingRoomCode)=> {
       }))
     })
 
-    gameState.studentsInRoom = gameState.studentsInRoom.filter(name => name !== studentName);
+    gameState.studentsInRoom = gameState.studentsInRoom.filter(student => student.name !== studentName);
     console.log("Students when one person leaves", gameState.studentsInRoom);
 
     try {
       const studentLeftQuery = `DELETE FROM room_students.tbl_room
       WHERE fld_room_code = $1 and type = 'student';`;
       const removeStudent = await pool.query(studentLeftQuery, [leavingRoomCode]);
+
+      //delete student answer data from database
+      const studentDeleteAns = `
+      DELETE FROM room_students.tbl_code_game_ans
+      WHERE fld_code = $1 AND fld_student = $2;
+      `;
+
+      await pool.query(studentDeleteAns, [leavingRoomCode, studentName]);
+
       console.log("Student successfully deleted from database");
+
     } catch (error) {
       console.log("There was an error when removing the student from database", error);
     }
@@ -845,6 +874,9 @@ const handleRemoveAll = async (studentName, type, leavingRoomCode)=> {
     //deleted EVERYTHING if host leaves
     resetGameState();
     //handle when teacher leaves
+
+    //TODO: When I have new game state, remove the teacher connection
+
     websockets.forEach((websocket) => {
       websocket.socket.send(JSON.stringify({
         type: "hostLeft",
@@ -871,6 +903,7 @@ app.ws('/join', function(ws, req) {
   let studentName; 
   let type;
   let leavingRoomCode;
+  //put UUID here
     ws.on('message', async function(msg) { //get the message
       console.log(msg);
       const userMessage = JSON.parse(msg);
@@ -883,7 +916,7 @@ app.ws('/join', function(ws, req) {
         socketConnection.userName = returnedName;
         type = "student";
         leavingRoomCode = userMessage.data.code;
-        gameState.studentsInRoom.push(returnedName);
+        gameState.studentsInRoom.push({ name: returnedName, clickCount: 0 });
         ws.send(JSON.stringify({type: "newStudentName", data: returnedName, code: userMessage.data.code})); //will store the message in zustand
         const listOfStudents = gameState.studentsInRoom; //stores the list of students in the game
 
@@ -897,6 +930,7 @@ app.ws('/join', function(ws, req) {
 
       if (userMessage.type === "host"){ //called when the teacher hits host deck
         type = "teacher";
+        socketConnection.userName = "teacher";
         const returnedRoom = await hostRoom(); //will randomly generate a room code
         leavingRoomCode = returnedRoom;
         console.log("Teacher connected");
@@ -949,8 +983,12 @@ app.ws('/join', function(ws, req) {
         const currentQuestion = userMessage.currentQuestion;
         const correctness = userMessage.correctness;
         const questionNum = userMessage.questionNum;
+        const location = userMessage.location;
+        const correctAnswer = userMessage.correctAnswer;
+        const code = userMessage.code;
 
         gameState.currentQuestion = currentQuestion;
+        gameState.questionID = questionID;
         console.log("current question: ", gameState.currentQuestion);
 
         gameState.answers.push({
@@ -960,8 +998,23 @@ app.ws('/join', function(ws, req) {
           studentClicks,
           correctness,
           questionNum,
+          correctAnswer,
           currentQuestion,  //adding this here so backend can send allStudentsAnsweredQuestion when all students answered -> should we change this? its redundant
+          location,
         });
+
+        //for database query so that it can hopefully run and catch errors successfully
+        try {
+        //making database query for all stuff here
+        const query = `
+        INSERT INTO room_students.tbl_code_game_ans(fld_code, fld_student, fld_student_ans, fld_correct_ans, fld_correctness, fld_question, fld_student_clicks, fld_question_number)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`
+
+        const ansQuery = await pool.query(query, [code, studentName, studentAnswer, correctAnswer, correctness, currentQuestion, studentClicks, questionNum]);
+        }
+        catch(error) {
+          console.log("error:", error);
+        }
 
         console.log("student sent in the following game data: ", gameState.answers[gameState.answers.length - 1]);
 
@@ -969,7 +1022,7 @@ app.ws('/join', function(ws, req) {
         //To find if all students have answered:
         let numStudentsWhoAnswered = gameState.answers.filter(function (element) {
           //return the students who have answered the current question
-          return element.currentQuestion === gameState.currentQuestion;
+          return (element.currentQuestion === gameState.currentQuestion && element.questionID === gameState.questionID);
         })
 
         console.log("students who have answered: ", numStudentsWhoAnswered.length)
@@ -1029,7 +1082,7 @@ app.ws('/join', function(ws, req) {
         ws.send(JSON.stringify({
           type: "sentAnswerCorrectness",
           data: determinator,
-        }))
+        })) 
       }
 
       if (userMessage.type === "countdownStarted"){ //sent when the timer starts on frontend
@@ -1094,19 +1147,78 @@ app.ws('/join', function(ws, req) {
       if (userMessage.type === "gameEnded"){
         handleRemoveAll(studentName, type, leavingRoomCode);
         const endSocketGame = websockets.find(user => user.userName === userMessage.name);
-        if (endSocketGame){
+        if (endSocketGame) {
           endSocketGame.socket.send(JSON.stringify({
             type: "gameHasEnded"
           }))
         }
-        // websockets.forEach((websocket) => {
-        //   websocket.socket.send(JSON.stringify({
-        //     type: "gameHasEnded",
-        //     name: userMessage.name
-        //   }))
-        // })
       }
 
+      if (userMessage.type === "sendAnswerDist"){
+        let sendAnswers = [];
+
+        let currentAnswers = gameState.answers.filter(function (element) {
+          //return the students who have answered the current question
+          return (element.currentQuestion === gameState.currentQuestion && element.questionID === gameState.questionID);
+        })
+
+        console.log("Going to check the following answers: ", currentAnswers);
+
+        let top = 0;
+        let left = 0;
+        let right = 0;
+        let bottom = 0;
+        let noAnswer = 0;
+        for (let i = 0; i < currentAnswers.length; i++){ //add something for the question num
+          let checkAnswer = currentAnswers[i].location;
+
+          if (checkAnswer === -1){ //that person did not answer so does not effect distribution
+            console.log("No answer recorded for data distribution");
+            noAnswer++;
+          } else if (checkAnswer === 0){ //means student picked the top choice
+            top++;
+          } else if (checkAnswer === 1){ //means student picked left
+            left++;
+          } else if (checkAnswer === 2){
+            right++;
+          } else {
+            bottom++;
+          }
+        }
+        if (noAnswer === currentAnswers.length){
+          console.log("There was no answer so sending distribution of 0");
+          sendAnswers.push(0,0,0,0);
+        } else {
+          sendAnswers.push(top, left, right, bottom);
+        }
+        const findTeacher = websockets.filter(teach => teach.userName === "teacher");
+        console.log("The teachers who will recieve the message are: ", findTeacher);
+        if (findTeacher){
+          console.log("Going to return the following array of numbers: ", sendAnswers);
+          findTeacher.forEach((websocket) => {
+            websocket.socket.send(JSON.stringify({
+              type: "returnAnswers",
+              data: sendAnswers,
+            }))
+          })
+        }
+      }
+
+      if (userMessage.type === "scoreUpdate") {
+        const { playername, clickCount } = userMessage.data;
+      
+        // Send update to all connected clients
+        websockets.forEach((websocket) => {
+          websocket.socket.send(JSON.stringify({
+            type: "updateAllScores", // this is what frontend clients will receive
+            data: {
+              playername,
+              clickCount
+            }
+          }));
+        });
+      }
+      
     });
 
     ws.on('close', async (code, reason) => {

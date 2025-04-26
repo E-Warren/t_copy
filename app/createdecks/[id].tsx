@@ -326,7 +326,8 @@ export default function CreateDeckScreen() {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: "#7F55E0FF",
+    paddingTop: 27,
+    backgroundColor: "#7F55E0",
   },
   header: {
     fontSize: 28,
@@ -339,11 +340,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 10,
+    marginBottom: 15,
   },
   backButton: {
-    fontSize: 18,
+    fontSize: 25,
     color: "#fff",
   },
   input: {
