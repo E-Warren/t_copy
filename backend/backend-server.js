@@ -1313,7 +1313,6 @@ app.ws('/join', function(ws, req) {
         lobbyRoom.websockets = lobbyRoom.websockets.filter(element => element.webID === userID);
       }
       //leavingRoomCode = "Lobby";
-      ws.close();
     });
   });
 
