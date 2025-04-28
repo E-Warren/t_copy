@@ -109,6 +109,9 @@ export const WebSocketService = {
                     const { playername, clickCount } = message.data;
                     useStudentStore.getState().updateStudentScore(playername, clickCount);
                 }
+                else if (message.type === "keepAlive"){
+                    //do nothingm this is just to keep the websocket open
+                }
                 
                 console.log(message);
             }
