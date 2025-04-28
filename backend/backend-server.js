@@ -1340,6 +1340,19 @@ app.ws('/join', function(ws, req) {
     }
   });
 
+  //trying to keep the connection open for more than 1 minute for safari
+  setInterval(() => {
+    games.forEach(game => {
+      game.websockets.forEach( websocket => {
+        if (websocket.socket.readyState === WebSocket.OPEN) {
+          websocket.socket.send(JSON.stringify({
+            type: "keepAlive"
+          }))
+        }
+      })
+    })
+  }, 50000)
+
 
 // -------------------- RUNNING SERVER --------------------------- 
 app.listen(port, (error) => {
