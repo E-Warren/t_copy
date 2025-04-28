@@ -35,6 +35,7 @@ export const WebSocketService = {
                     useStudentStore.setState({ currentTime: message.timeLeft });
                 }
                 else if (message.type === "gameHasBegun") {  //backend sends to students that the game has begun
+                    console.log("Recieved the game has begun message!!");
                     useStudentStore.setState({ startedGame : message.data });
                 }
                 else if (message.type === "sentDeckID") {
