@@ -911,7 +911,13 @@ app.ws('/join', function(ws, req) {
   //put UUID here
     ws.on('message', async function(msg) { //get the message
       console.log(msg);
-      const userMessage = JSON.parse(msg);
+      let userMessage;
+      try{
+        userMessage = JSON.parse(msg);
+      } catch (err) {
+        console.log("Recieved a weird message", err);
+        return;
+      }
       
 
       if (userMessage.type === 'join'){ //called when a student joins the room
