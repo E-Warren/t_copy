@@ -18,8 +18,7 @@ export default function LoginScreen() {
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId:"871617226030-iuse6u2osodim6ru0b7mg6eufrdmp125.apps.googleusercontent.com",
-    redirectUri: "https://tappt.live",
-    useProxy: false,
+    useProxy: true,
   });
 
   const [userInfo, setUserInfo] = useState(null);
