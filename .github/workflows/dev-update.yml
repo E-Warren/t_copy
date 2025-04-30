@@ -47,7 +47,7 @@ jobs:
 
             # unit testing
             echo "UNIT TESTING"
-            npm test
+            CI=true npm test
 
             # build the frontend
             echo "BUILDING APP"
