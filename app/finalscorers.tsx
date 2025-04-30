@@ -8,6 +8,7 @@ import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TopScorersScreen = () => {
+
   const tadaSound = require('../assets/sound/tada-fanfare-a-6313.mp3');
   const firstPlaceAnim = useRef(new Animated.Value(0)).current;
   const secondPlaceAnim = useRef(new Animated.Value(0)).current;
