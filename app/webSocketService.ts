@@ -110,7 +110,10 @@ export const WebSocketService = {
                     useStudentStore.getState().updateStudentScore(playername, clickCount);
                 }
                 else if (message.type === "keepAlive"){
-                    //do nothingm this is just to keep the websocket open
+                    //do nothing this is just to keep the websocket open
+                }
+                else if (message.type === "gameAlreadyStarted"){
+                    alert("Cannot join: The game has already started!")
                 }
                 
                 console.log(message);
