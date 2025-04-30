@@ -1,4 +1,4 @@
-import 'regenerator-runtime/runtime';
+//import 'regenerator-runtime/runtime';
 import React, { useState, useEffect } from "react";
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { Link, useRouter } from "expo-router";
