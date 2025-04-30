@@ -7,18 +7,24 @@ import {useRouter} from 'expo-router'
 import * as Google from 'expo-auth-session/providers/google';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
+import * as AuthSession from "expo-auth-session";
 //import { useNavigate } from 'react-router-dom'; //new
 import Config from './config';
 
-
 WebBrowser.maybeCompleteAuthSession();
+
 
 export default function LoginScreen() {
   const router = useRouter();
 
+  const redirectUri = AuthSession.makeRedirectUri({
+    useProxy: false,
+  });
+  
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId:"871617226030-iuse6u2osodim6ru0b7mg6eufrdmp125.apps.googleusercontent.com",
-    useProxy: true,
+    clientId: "871617226030-iuse6u2osodim6ru0b7mg6eufrdmp125.apps.googleusercontent.com",
+    redirectUri,
+    useProxy: false,
   });
 
   const [userInfo, setUserInfo] = useState(null);
