@@ -47,7 +47,7 @@ jobs:
 
             # unit testing
             echo "UNIT TESTING"
-            # npm install regenerator-runtime
+            npm install regenerator-runtime
             CI=true npm test
 
             # build the frontend
