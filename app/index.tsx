@@ -1,4 +1,3 @@
-import "regenerator-runtime/runtime.js";
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router"; // Import for navigation
@@ -41,7 +40,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#5a60ea",
     paddingTop: 40,
     paddingHorizontal: 20,
-    justifyContent: "center",
   },
   header: {
     position: "absolute",
@@ -54,7 +52,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
   },
   title: {
-    fontSize: 50,
+    fontSize: 40,
     color: "white",
     fontWeight: "bold",
     textAlign: "center",
@@ -84,7 +82,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "white",
-    fontSize: 50,
+    fontSize: 40,
     fontWeight: "bold",
   },
 });
