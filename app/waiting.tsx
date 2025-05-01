@@ -135,6 +135,7 @@ const styles = StyleSheet.create({
     right: 15,
     fontSize: 40,
     color: "white",
+    fontWeight: "bold",
   },
   message: {
     fontSize: 35,
