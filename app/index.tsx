@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 150,
+    paddingVertical: 120,
     marginRight: 15,
   },
   hostButton: {
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 150,
+    paddingVertical: 120,
     marginLeft: 15,
   },
   buttonText: {

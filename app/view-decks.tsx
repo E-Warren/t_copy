@@ -6,6 +6,7 @@ import { useStudentStore } from "./useWebSocketStore";
 import Config from "./config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+
 interface Deck {
   id: string;
   title: string;
@@ -40,7 +41,7 @@ const deleteDeckFromBackend = async (
 
 export default function DecksScreen() {
   const router = useRouter();
-  
+
   const resetStudents = useStudentStore((state) => state.resetStudents);
   const [decks, setDecks] = useState<Deck[]>([]);
 
@@ -49,6 +50,7 @@ export default function DecksScreen() {
       const token = localStorage.getItem("token");
       if (!token) {
         alert("Missing token. Please log in.");
+        //router.replace("/login");
 
         setTimeout(() => {
           router.push("/login");
@@ -163,8 +165,9 @@ export default function DecksScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <Link href="/" style={styles.backButton}>
-        </Link>
+        {<Link href="/" style={styles.backButton}>
+        
+        </Link> }
         <Text style={styles.header}>Available Decks</Text>
         <Link href="/createdecks" style={styles.newDeckButton}>
           + New Deck
