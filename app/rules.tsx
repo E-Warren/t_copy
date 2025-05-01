@@ -1,16 +1,12 @@
 import { View, Text, StyleSheet } from "react-native";
-import { Link } from "expo-router";
 
 export default function Index() {
   return (
     <View style={styles.container}>
       {/* Top Bar */}
       <View style={styles.topBar}>
-      <Link href="/login" style={styles.backButton}>
-      ← Back
-      </Link>
+        <Text style={styles.topBarText}>◇ Tappt</Text>
       </View>
-
 
       {/* Main Card */}
       <View style={styles.card}>
@@ -19,7 +15,7 @@ export default function Index() {
           {/* Green Block */}
           <View style={[styles.block, { backgroundColor: "#20c997" }]}>
             <View style={styles.headingContainer}>
-              <Text style={styles.blockHeading}>Listen!</Text>
+              <Text style={styles.blockHeading}>LISTEN!</Text>
             </View>
             <Text style={styles.blockText}>
               1. Enter game pin to join classroom{"\n"}
@@ -31,7 +27,7 @@ export default function Index() {
           {/* Yellow Block */}
           <View style={[styles.block, { backgroundColor: "#f0ad4e" }]}>
             <View style={styles.headingContainer}>
-              <Text style={styles.blockHeading}>Click!</Text>
+              <Text style={styles.blockHeading}>CLICK!</Text>
             </View>
             <Text style={styles.blockText}>
               1. Earn points for clicks during the read aloud period{"\n"}
@@ -42,7 +38,7 @@ export default function Index() {
           {/* Blue Block */}
           <View style={[styles.block, { backgroundColor: "#3498db" }]}>
             <View style={styles.headingContainer}>
-              <Text style={styles.blockHeading}>Learn!</Text>
+              <Text style={styles.blockHeading}>LEARN!</Text>
             </View>
             <Text style={styles.blockText}>
               1. Review incorrect answers after the game ends{"\n"}
@@ -89,7 +85,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   title: {
-    fontSize: 60, // slightly smaller title for balance
+    fontSize: 65, // slightly smaller title for balance
     fontWeight: "bold",
     marginBottom: 10,
     color: "#000",
@@ -114,13 +110,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   headingContainer: {
-    height: 70,
+    height: 80,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
   },
   blockHeading: {
-    fontSize: 55,
+    fontSize: 60,
     color: "#fff",
     fontWeight: "bold",
     textAlign: "center",
@@ -129,13 +125,9 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   blockText: {
-    fontSize: 35, // cleaner readable size
+    fontSize: 40, // cleaner readable size
     color: "#fff",
     textAlign: "center",
     lineHeight: 61,
-  },
-  backButton: {
-    fontSize: 25,
-    color: "#fff",
   },
 });
