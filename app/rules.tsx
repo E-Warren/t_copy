@@ -11,6 +11,7 @@ export default function Index() {
       </Link>
       </View>
 
+
       {/* Main Card */}
       <View style={styles.card}>
         <Text style={styles.title}>How to play</Text>

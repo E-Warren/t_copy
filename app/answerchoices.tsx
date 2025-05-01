@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     color: "white",
   },
   question: {
-    fontSize: 60,
+    fontSize: 40,
     fontWeight: "bold",
     color: "white",
     textAlign: "center",
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
   right: {
     bottom: "35%",
     right: "7%",
-    fontSize:30,
+    fontSize:30,    
   },
   bottom: {
     bottom: "7%",
