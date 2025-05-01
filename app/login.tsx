@@ -7,51 +7,35 @@ import {useRouter} from 'expo-router'
 import * as Google from 'expo-auth-session/providers/google';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
-import * as AuthSession from "expo-auth-session";
 //import { useNavigate } from 'react-router-dom'; //new
 import Config from './config';
 
-WebBrowser.maybeCompleteAuthSession();
 
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
 
-  const redirectUri = AuthSession.makeRedirectUri({
-    useProxy: false,
-  });
-  
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "871617226030-iuse6u2osodim6ru0b7mg6eufrdmp125.apps.googleusercontent.com",
-    redirectUri,
-    useProxy: false,
+    clientId:"871617226030-iuse6u2osodim6ru0b7mg6eufrdmp125.apps.googleusercontent.com",
   });
 
   const [userInfo, setUserInfo] = useState(null);
 
   const onPressGoogleSignIn = async () => {
-    console.log("onPressGoogleSignIn called");
-    
     const user = await AsyncStorage.getItem("user");
-    console.log("AsyncStorage user:", user);
     if (!user) {
-      console.log("No user found in AsyncStorage");
       if (response?.type === "success") {
+
         await getUserInfo (response.authentication?.accessToken!);
-        console.log("Google login success. Token:", response.authentication?.accessToken);
       }
     } else {
-      console.log("Found user in AsyncStorage. Setting userInfo...");
       setUserInfo(JSON.parse(user));
     }
   };
 
   const getUserInfo = async (token : string ) => {
-    if (!token) {
-      console.log("No token provided to getUserInfo");
-      return;
-    }
-    console.log("Fetching user info from Google API with token:", token);
+    if (!token) return;
     try {
       const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo",
       {
@@ -59,21 +43,15 @@ export default function LoginScreen() {
         }
       );
       const userInfoReponse = await response.json();
-      console.log("Received user info:", userInfoReponse);
+    
 
       await AsyncStorage.setItem("user",JSON.stringify(userInfoReponse));
-      console.log("Saved user info to AsyncStorage");
-
       setUserInfo(userInfoReponse);
-      console.log("Set user info in state");
 
       await sendEmailToServer(userInfoReponse.email);
-      console.log("Sent email to server:", userInfoReponse.email);
-      
       router.push("/view-decks"); 
-      console.log(" Navigated to /view-decks");
     } catch (e) {
-      console.log("Error in getUserInfo:",e);
+      console.log(e);
     }
   };
 
@@ -106,7 +84,6 @@ export default function LoginScreen() {
 
   useEffect (() => {
     onPressGoogleSignIn();
-    console.log("useEffect triggered, response:", response);
   } ,[response]);
 
 
